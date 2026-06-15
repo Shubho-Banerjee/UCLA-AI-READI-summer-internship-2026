@@ -10,5 +10,5 @@ summer-internship-2026/
 ├── slides/
 ├── README.md
 ├── 00_background_report.qmd
-└── summer-internship-2026.Rproj
+└── UCLA-AI-READI-2026.Rproj
 ```
