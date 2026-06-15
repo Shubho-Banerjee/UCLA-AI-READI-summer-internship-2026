@@ -1,4 +1,4 @@
-### UCLA AI-READI Summer Internship 2026
+# UCLA AI-READI Summer Internship 2026
 ## Project Directory Map
 ```
 summer-internship-2026/
