@@ -1,0 +1,11 @@
+---
+title: "00_background_report"
+format: html
+editor: visual
+---
+
+# A. Introduction
+
+My name is Shubho Banerjee, and I am a sophomore at Oak Park High School. My primary interests are in Mathematics and English, and my goals for this internship are to learn how I can bridge these two interests and apply them to health data science.
+
+# B. Reproducible Research
