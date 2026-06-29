@@ -1,11 +1,188 @@
 ---
-title: "00_background_report"
+title: "Week 0 Background Report"
 format: html
 editor: visual
 ---
 
 # A. Introduction
 
-My name is Shubho Banerjee, and I am a sophomore at Oak Park High School. My primary interests are in Mathematics and English, and my goals for this internship are to learn how I can bridge these two interests and apply them to health data science.
+My name is Shubho Banerjee, a sophomore at Oak Park High School. Driven by my interests in Mathematics and English, my goal for this internship is to learn how to bridge these two disciplines and apply them to health data science.
 
 # B. Reproducible Research
+
+#### Q: What does Reproducible Research Mean to Me?
+
+A: To me, reproducible research means having full transparency into the exact materials and methodologies other scientists used to achieve their results. This openness allows us to verify past findings, replicate experiments accurately, and generate consistent data. Ultimately, this practice is essential for society because it ensures clinical accuracy and fosters public trust in scientific discovery.
+
+# C. Small R Exercise
+
+```{r}
+# Load the ggplot2 package for data visualization
+library(ggplot2)
+# Create a scatter plot using the built-in mtcars dataset
+ggplot(data = mtcars, aes(x = wt, y = mpg)) +
+  geom_point(color = "royalblue", size = 3) +
+  labs(
+    title = "Car Weight vs. Fuel Efficiency",
+    x = "Weight (1,000 lbs)",
+    y = "Fuel Efficiency (Miles per Gallon)"
+  ) +
+  theme_minimal()
+```
+
+There is a clear downward trend according to the scatter plot. Vehicles that weigh less are clustered towards the top of the Y-axis which means that they have higher fuel efficiency. Conversely, vehicles that weigh more are clustered lower on the Y-axis, indicating lower fuel efficiency.
+
+# D. Background Memo
+
+```{css, echo=FALSE}
+.page-break {
+  page-break-before: always;
+  break-before: page;
+}
+.memo-container {
+  max-width: 800px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+```
+
+:::: {.page-break .memo-container}
+
+------------------------------------------------------------------------
+
+::: {style="text-align: center; font-weight: bold; font-size: 1.5em; letter-spacing: 2px;"}
+MEMORANDUM
+:::
+
+------------------------------------------------------------------------
+
+**TO:** Dr. Jin and Hua Zhou\
+**FROM:** Shubho Banerjee, High School Intern\
+**DATE:** June 29, 2026\
+**SUBJECT:** Clinical Utility of Continuous Glucose Monitoring (CGM) vs. HbA1c
+
+------------------------------------------------------------------------
+
+### Introduction
+
+The purpose of this memo is to evaluate what continuous glucose monitoring (CGM) measures that a traditional Hemoglobin A1c (HbA1c) test cannot. While the HbA1c test remains a standard tool for assessing blood sugar management, it only provides a three-month retrospective average. Consequently, it completely masks the real-time, dynamic fluctuations that occur in a person's body daily.
+
+### Dynamic Metrics: Beyond the Average
+
+The primary limitation of HbA1c is its inability to capture **glucose variability**. For example, two individuals can have an identical, healthy HbA1c average of 6.5%. However, one person may have perfectly stable blood sugar all day, while the other experiences dangerous swings between extreme highs and lows.
+
+CGM captures these nuances by tracking **Time in Range (TIR)**—the exact percentage of the day a person's glucose stays within a safe target window (usually 70–180 mg/dL). Crucially, CGMs can detect **hypoglycemia** (dangerously low blood sugar). Because an HbA1c test only averages data, severe overnight drops in blood sugar go entirely unnoticed, leaving patients at risk for unmanaged nighttime emergencies.
+
+### Real-Time Behavioral Responses and Patterns
+
+Unlike a single lab test, CGMs record data every few minutes, mapping out distinct **daily patterns**. This allows patients and providers to see exactly how the body responds to immediate lifestyle factors:
+
+- **Food and Post-Meal Spikes:** CGMs show rapid glucose spikes after eating certain carbohydrates, helping individuals identify which specific foods trigger bad reactions.
+- **Sleep and Stress:** High-stress situations or poor sleep release cortisol, causing immediate, visible spikes in baseline glucose levels on a CGM graph.
+- **Exercise and Medication:** Users can watch how physical activity lowers blood sugar in real time, allowing them to precisely time their medications or insulin doses to avoid crashes.
+
+### Conclusion
+
+Ultimately, HbA1c is a helpful diagnostic marker, but it only looks backward at a broad average. CGM provides a movie instead of a snapshot. By revealing short-term responses to food, stress, and exercise, CGM empowers patients with actionable data to make immediate, proactive decisions about their health.
+
+------------------------------------------------------------------------
+::::
+
+# E. Paper Summary
+
+```{css, echo=FALSE}
+.page-break {
+  page-break-before: always;
+  break-before: page;
+}
+.memo-container {
+  max-width: 800px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+```
+
+:::: {.page-break .memo-container}
+
+------------------------------------------------------------------------
+
+::: {style="text-align: center; font-weight: bold; font-size: 1.5em; letter-spacing: 1px;"}
+SCIENTIFIC PAPER SUMMARY
+:::
+
+------------------------------------------------------------------------
+
+**Paper Title:** *Change in Hemoglobin A1c and Quality of Life with Real-Time Continuous Glucose Monitoring Use by People with Insulin-Treated Diabetes in the LANDMARK Study*\
+**Authors:** Behavioral Diabetes Institute Research Group\
+**Journal:** *Diabetes Technology & Therapeutics* / American Diabetes Association Center
+
+------------------------------------------------------------------------
+
+### 1. Main Research Question
+
+The primary objective of the LANDMARK study was to evaluate the real-world clinical impact of initiating a real-time Continuous Glucose Monitoring (CGM) system in adults with Type 1 or Type 2 diabetes. Specifically, the researchers aimed to measure absolute changes in blood sugar control (via HbA1c levels) alongside changes in the patients' psychosocial well-being and diabetes-related emotional distress.
+
+### 2. Data Used
+
+The study analyzed a diverse cohort of real-world patients managing their diabetes with intensive insulin therapy:
+
+- **Participants:** Adults diagnosed with either Type 1 or Type 2 diabetes who had poor baseline glycemic control (an initial HbA1c tracking above 7.0%).
+
+- **Device:** All tracking was performed using the Dexcom G6 real-time CGM system.
+
+- **Timeline:** Patient data, lab work, and psychological surveys were collected at baseline and monitored across a strict **12-week (3-month) study period**.
+
+### 3. Methods
+
+This was a prospective, multicenter clinical study tracking real-world outcomes. At the start of the study (week zero), participants had their baseline HbA1c measured and completed standardized psychological questionnaires, including the Diabetes Distress Scale (DDS) and the Hypoglycemia Fear Survey (HABS). Crucially, the researchers implemented a "real-world" design: participants received no standardized training or structured clinical interventions when they started using the CGM. Over the 3-month period, the CGM automatically recorded continuous data. At week 12, final blood draws and psychological surveys were administered, and statistical paired t-tests were used to evaluate changes from baseline.
+
+### 4. Key Findings
+
+The study revealed highly significant improvements across both metabolic and emotional health markers at the end of the 12 weeks:
+
+- **Significant HbA1c Reduction:** The mean absolute HbA1c level fell sharply from **8.2% at baseline down to 7.1%** at the conclusion of the study.
+
+- **High Success Rate:** More than half (**54.4%**) of the participants who started with poorly controlled blood sugar achieved an absolute HbA1c drop greater than 1.0%.
+
+- **Reduced Mental Burden:** Patients reported a massive, statistically significant reduction in both general diabetes distress (DDS) and specific fears regarding unexpected low blood sugar emergencies (HABS).
+
+- **Ease of Adoption:** 93% of participants reported being highly satisfied with the technology, and 73% found it very easy to integrate into their routines without formal training.
+
+### 5. Limitations
+
+The authors identified two key limitations to consider when interpreting the results:
+
+1\. **Short Evaluation Window:** The study only tracked patients for 3 months. This timeline is excellent for watching an HbA1c cycle change, but it is too short to prove if patients will sustain these positive behavioral changes over several years.
+
+2\. **Lack of a Control Group:** Because this was a prospective observational tracking study rather than a blinded, randomized controlled trial (RCT), it is difficult to completely rule out external variables that might have influenced a patient's lifestyle choices during those 12 weeks.
+
+------------------------------------------------------------------------
+::::
+
+# F. AI-READI Reflection
+
+#### Q: What can AI-READI help researchers understand, and what can it not prove?
+
+A: AI-READI helps researchers understand complex associations between daily lifestyles and diabetes health. Its diverse data also improves the generalizability of new medical machine learning models. However, this observational data cannot prove true causation. Hidden confounding variables and sensor measurement limits mean the data never tells the whole story. Therefore, any patterns found require separate clinical trials to prove actual cause-and-effect.
+
+# G. Epidemiology Concepts
+
+### 1. What is the difference between prospective and retrospective studies?
+
+Prospective studies watch participants moving forward in time, tracking them from the present day into the future to see how specific behaviors affect their health outcomes. In contrast, retrospective studies look backward at historical data, reviewing existing medical records or past participant histories to find links to current health conditions.
+
+### 2. What is the difference between case-control and longitudinal/cohort studies?
+
+Case-control studies compare people who already have a specific condition ("cases") to healthy individuals who do not ("controls") to look for past differences in their exposures. Longitudinal or cohort studies track a single, large group of people over an extended period to monitor how exposure to various risk factors naturally leads to the development of health conditions over time.
+
+### 3. Based on your first look at AI-READI, what kinds of data are collected?
+
+The AI-READI study collects a diverse, multimodal dataset divided into several key categories:
+
+- **Clinical & Physiological Data:** Advanced retinal imaging (OCT), standard laboratory blood work, and physical health vitals.
+
+- **Continuous Wearable Sensor Data:** Continuous glucose monitors (CGM) and fitness tracking bands to monitor physical activity, sleep, and heart rate variability.
+
+- **Environmental & Social Data:** Surveys tracking participant demographics, health literacy, and neighborhood social determinants of health (SDOH).
+
+------------------------------------------------------------------------
