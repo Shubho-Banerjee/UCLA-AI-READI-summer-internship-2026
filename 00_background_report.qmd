@@ -69,13 +69,13 @@ The purpose of this memo is to evaluate what continuous glucose monitoring (CGM)
 
 ### Dynamic Metrics: Beyond the Average
 
-The primary limitation of HbA1c is its inability to capture **glucose variability**. For example, two individuals can have an identical, healthy HbA1c average of 6.5%. However, one person may have perfectly stable blood sugar all day, while the other experiences dangerous swings between extreme highs and lows.
+The primary limitation of HbA1c is its inability to capture glucose variability. For example, two individuals can have an identical, healthy HbA1c average of 6.5%. However, one person may have perfectly stable blood sugar all day, while the other experiences dangerous swings between extreme highs and lows.
 
-CGM captures these nuances by tracking **Time in Range (TIR)**—the exact percentage of the day a person's glucose stays within a safe target window (usually 70–180 mg/dL). Crucially, CGMs can detect **hypoglycemia** (dangerously low blood sugar). Because an HbA1c test only averages data, severe overnight drops in blood sugar go entirely unnoticed, leaving patients at risk for unmanaged nighttime emergencies.
+CGM captures these nuances by tracking Time in Range (TIR), which is the exact percentage of the day a person's glucose stays within a safe target window (usually 70–180 mg/dL). Crucially, CGMs can detect hypoglycemia (dangerously low blood sugar). Because an HbA1c test only averages data, severe overnight drops in blood sugar go entirely unnoticed, leaving patients at risk for unmanaged nighttime emergencies.
 
 ### Real-Time Behavioral Responses and Patterns
 
-Unlike a single lab test, CGMs record data every few minutes, mapping out distinct **daily patterns**. This allows patients and providers to see exactly how the body responds to immediate lifestyle factors:
+Unlike a single lab test, CGMs record data every few minutes, mapping out distinct daily patterns. This allows patients and providers to see exactly how the body responds to immediate lifestyle factors:
 
 - **Food and Post-Meal Spikes:** CGMs show rapid glucose spikes after eating certain carbohydrates, helping individuals identify which specific foods trigger bad reactions.
 - **Sleep and Stress:** High-stress situations or poor sleep release cortisol, causing immediate, visible spikes in baseline glucose levels on a CGM graph.
@@ -130,7 +130,7 @@ The study analyzed a diverse cohort of real-world patients managing their diabet
 
 - **Device:** All tracking was performed using the Dexcom G6 real-time CGM system.
 
-- **Timeline:** Patient data, lab work, and psychological surveys were collected at baseline and monitored across a strict **12-week (3-month) study period**.
+- **Timeline:** Patient data, lab work, and psychological surveys were collected at baseline and monitored across a strict 12-week (3-month) study period.
 
 ### 3. Methods
 
@@ -140,9 +140,9 @@ This was a prospective, multicenter clinical study tracking real-world outcomes.
 
 The study revealed highly significant improvements across both metabolic and emotional health markers at the end of the 12 weeks:
 
-- **Significant HbA1c Reduction:** The mean absolute HbA1c level fell sharply from **8.2% at baseline down to 7.1%** at the conclusion of the study.
+- **Significant HbA1c Reduction:** The mean absolute HbA1c level fell sharply from 8.2% at baseline down to 7.1% at the conclusion of the study.
 
-- **High Success Rate:** More than half (**54.4%**) of the participants who started with poorly controlled blood sugar achieved an absolute HbA1c drop greater than 1.0%.
+- **High Success Rate:** More than half (54.4%) of the participants who started with poorly controlled blood sugar achieved an absolute HbA1c drop greater than 1.0%.
 
 - **Reduced Mental Burden:** Patients reported a massive, statistically significant reduction in both general diabetes distress (DDS) and specific fears regarding unexpected low blood sugar emergencies (HABS).
 
