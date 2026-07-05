@@ -1,5 +1,7 @@
 ---
 title: "Week 0 Background Report"
+author: "Shubho Banerjee"
+date: "2026-06-30"
 format: html
 editor: visual
 ---
