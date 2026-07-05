@@ -1,7 +1,9 @@
 ---
-title: "01_cohort_assembly"
+title: "Week 01: Cohort Assembly"
 author: "Shubho Banerjee"
 date: "2026-07-07"
+toc: true
+toc-location: left
 format: html
 editor: visual
 ---

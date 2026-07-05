@@ -1,7 +1,9 @@
 ---
-title: "Week 0 Background Report"
+title: "Week 0: Background Report"
 author: "Shubho Banerjee"
 date: "2026-06-30"
+toc: true
+toc-location: left
 format: html
 editor: visual
 ---
