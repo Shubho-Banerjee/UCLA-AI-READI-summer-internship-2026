@@ -10,4 +10,395 @@ editor: visual
 
 # Introduction
 
-The goal of this notebook is to assemble an analysis-ready cohort from the AI-READI dataset. Participant information is combined with CGM, wearable, and clinical data to summarize data availability, perform quality control checks, and define cohorts for future analysis.
+The goal of this notebook is to assemble the first analysis-ready AI-READI cohort. We combine participant-level information with modality manifests to determine which participants have continuous glucose monitoring (CGM), wearable, and clinical data available for analysis. We also perform quality-control checks on the joins, summarize participant characteristics, and identify analysis cohorts for future studies. This notebook was developed using the AI-READI mini dataset. If the full dataset becomes available, the same code should run after changing only the data path.
+
+```{r}
+#| message: false
+#| warning: false
+
+library(tidyverse)
+library(knitr)
+library(here)
+
+options(dplyr.summarise.inform = FALSE)
+theme_set(theme_minimal())
+```
+
+# Data Path
+
+The analysis was developed using the AI-READI v3 mini dataset. A single `data_dir` variable is used so that the notebook can be run on the full dataset later by changing only the data path.
+
+```{r}
+data_dir <- here("data", "mini")
+
+print(data_dir)
+```
+
+# Load AI-READI Data
+
+This section loads the participant table and modality manifest files required for cohort assembly. File paths are defined relative to the project directory. The first table loaded is `participants.tsv`, which provides participant-level information and will serve as the foundation for joining modality-specific data. The AI-READI v3 mini dataset uses **`person_id`** as the participant identifier. This variable will be used as the key for all subsequent data joins.
+
+```{r}
+# Update the data path to the dataset root
+data_dir <- here("data", "mini", "v3-mini")
+
+print(data_dir)
+
+# Show the top-level files
+list.files(data_dir)
+
+# Show what's inside the dataset folder
+list.files(file.path(data_dir, "dataset"))
+
+participants <- read_tsv(
+  file.path(data_dir, "dataset", "participants.tsv"),
+  show_col_types = FALSE
+)
+
+glimpse(participants)
+
+names(participants)
+
+master_cohort <- read_csv(
+  file.path(data_dir, "ai_readi_master_cohort.csv"),
+  show_col_types = FALSE
+)
+
+glimpse(master_cohort)
+
+names(master_cohort)
+
+# Look inside the CGM folder
+
+list.files(
+  file.path(data_dir,
+            "dataset",
+            "wearable_blood_glucose")
+)
+
+list.files(
+  file.path(data_dir,
+            "dataset",
+            "wearable_blood_glucose"),
+  recursive = TRUE
+)
+
+# Read the CGM manifest
+
+cgm_manifest <- read_tsv(
+  file.path(
+    data_dir,
+    "dataset",
+    "wearable_blood_glucose",
+    "manifest.tsv"
+  ),
+  show_col_types = FALSE
+)
+
+glimpse(cgm_manifest)
+
+names(cgm_manifest)
+
+head(cgm_manifest)
+```
+
+# Build Cohort Table
+
+```{r}
+# Explore the participant table
+
+# Number of participants
+nrow(participants)
+
+# Number of unique participants
+n_distinct(participants$person_id)
+
+# Summary of age
+summary(participants$age)
+
+# Participant counts by study group
+count(participants, study_group)
+
+# Participant counts by clinical site
+count(participants, clinical_site)
+
+# Participant counts by recommended split
+count(participants, recommended_split)
+
+# Create the initial cohort table
+
+cohort <- participants %>%
+  select(
+    person_id,
+    age,
+    study_group,
+    clinical_site,
+    recommended_split,
+    wearable_blood_glucose,
+    wearable_activity_monitor,
+    clinical_data
+  ) %>%
+  rename(
+    cgm_available = wearable_blood_glucose,
+    wearable_available = wearable_activity_monitor,
+    clinical_available = clinical_data
+  )
+
+# Inspect the cohort table
+glimpse(cohort)
+
+head(cohort)
+
+# Add participant-level CGM summary
+
+# Record cohort size before CGM join
+rows_before_cgm_join <- nrow(cohort)
+ids_before_cgm_join <- n_distinct(cohort$person_id)
+
+# Join CGM manifest information
+cohort <- cohort %>%
+  left_join(
+    cgm_manifest %>%
+      select(
+        person_id,
+        average_glucose_level_mg_dl
+      ),
+    by = "person_id"
+  )
+
+# Record cohort size after CGM join
+rows_after_cgm_join <- nrow(cohort)
+ids_after_cgm_join <- n_distinct(cohort$person_id)
+
+# Display join quality-control summary
+tibble(
+  Measure = c(
+    "Rows before CGM join",
+    "Rows after CGM join",
+    "Unique participants before CGM join",
+    "Unique participants after CGM join"
+  ),
+  Count = c(
+    rows_before_cgm_join,
+    rows_after_cgm_join,
+    ids_before_cgm_join,
+    ids_after_cgm_join
+  )
+) %>%
+  kable()
+
+glimpse(cohort)
+```
+
+The AI-READI v3 mini dataset contains 100 unique participants with no duplicated `person_id` values. Participants range in age from 40 to 86 years, with a median age of 63 years and are distributed across four study groups and three clinical sites. All participants belong to the training split, making the mini dataset appropriate for developing and testing analysis code before applying it to the full dataset.
+
+# Quality Control
+
+```{r}
+# Baseline quality-control checks
+
+# Number of rows
+nrow(cohort)
+
+# Number of unique participants
+n_distinct(cohort$person_id)
+
+# Check for duplicated participant IDs
+sum(duplicated(cohort$person_id))
+
+# Count missing values in each variable
+colSums(is.na(cohort))
+
+# Check that everyone still exists after the join
+
+rows_before_cgm_join <- nrow(cohort)
+
+rows_after_cgm_join <- nrow(cohort)
+
+tibble(
+  step = c("Before CGM join", "After CGM join"),
+  rows = c(rows_before_cgm_join, rows_after_cgm_join)
+)
+
+n_distinct(cohort$person_id)
+
+sum(is.na(cohort$average_glucose_level_mg_dl))
+```
+
+The initial cohort table contains 100 rows and 100 unique participants, indicating that each participant appears only once. No duplicated `person_id` values were detected. Missing-value counts provide a baseline assessment of data completeness before additional datasets are joined. The cohort table remained at 100 rows and 100 unique participants after joining the CGM manifest using `person_id`. No participants were lost during the join, and every participant had an average CGM glucose value available in the mini dataset.
+
+# Table 1: Participants by Study Group
+
+```{r}
+table1 <- cohort %>%
+  count(study_group, name = "participants")
+
+kable(table1)
+```
+
+The mini dataset contains four study groups. The largest group is the oral medication/non-insulin injectable medication controlled group (33 participants), followed by the healthy (31 participants) and pre-diabetes lifestyle controlled (30 participants) groups. The insulin-dependent group is the smallest with 6 participants.
+
+# Table 2: Participants by Study Group and Clinical Site
+
+```{r}
+table2 <- cohort %>%
+  count(study_group, clinical_site)
+
+kable(table2)
+```
+
+Participants were distributed across all three clinical sites, with UCSD and UW contributing the largest numbers of participants. Each study group was represented at each site, suggesting that the mini dataset captures variation across both disease groups and recruitment locations. The insulin-dependent group had fewer participants across all sites, which should be considered when interpreting subgroup comparisons.
+
+# Table 3: Data Availability Summary
+
+```{r}
+table3 <- tibble(
+  Dataset = c(
+    "CGM",
+    "Wearable",
+    "Clinical",
+    "CGM + Wearable",
+    "CGM + Wearable + Clinical"
+  ),
+  Participants = c(
+    sum(cohort$cgm_available),
+    sum(cohort$wearable_available),
+    sum(cohort$clinical_available),
+    sum(cohort$cgm_available &
+          cohort$wearable_available),
+    sum(cohort$cgm_available &
+          cohort$wearable_available &
+          cohort$clinical_available)
+  )
+)
+
+kable(table3)
+```
+
+All 100 participants have CGM, wearable, and clinical data available. Therefore, every participant qualifies for analyses requiring all three modalities in the mini dataset.
+
+# Figure 1: Modality Availability Heatmap
+
+```{r}
+heatmap_data <- cohort %>%
+  select(
+    person_id,
+    cgm_available,
+    wearable_available,
+    clinical_available
+  ) %>%
+  pivot_longer(
+    -person_id,
+    names_to = "modality",
+    values_to = "available"
+  )
+
+ggplot(
+  heatmap_data,
+  aes(x = modality,
+      y = factor(person_id),
+      fill = available)
+) +
+  geom_tile() +
+  labs(
+    x = "Modality",
+    y = "Participant",
+    fill = "Available"
+  )
+```
+
+# Figure 2: Average CGM Glucose by Study Group
+
+```{r}
+ggplot(
+  cohort,
+  aes(
+    x = study_group,
+    y = average_glucose_level_mg_dl
+  )
+) +
+  geom_boxplot() +
+  labs(
+    x = "Study Group",
+    y = "Average CGM Glucose (mg/dL)"
+  ) +
+  theme(axis.text.x = element_text(angle = 20, hjust = 1))
+```
+
+# Figure 3: Average Daily Activity by Study Group
+
+```{r}
+# Read wearable manifest
+
+wearable_manifest <- read_tsv(
+  file.path(
+    data_dir,
+    "dataset",
+    "wearable_activity_monitor",
+    "manifest.tsv"
+  ),
+  show_col_types = FALSE
+)
+
+# Add average daily activity to cohort table
+
+cohort <- cohort %>%
+  left_join(
+    wearable_manifest %>%
+      select(
+        person_id,
+        average_daily_activity
+      ),
+    by = "person_id"
+  )
+
+# Plot average daily activity by study group
+
+ggplot(
+  cohort,
+  aes(
+    x = study_group,
+    y = average_daily_activity
+  )
+) +
+  geom_boxplot() +
+  labs(
+    x = "Study Group",
+    y = "Average Daily Activity"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 20, hjust = 1)
+  )
+```
+
+The wearable activity manifest was available for all 100 participants in the AI-READI v3 mini dataset. Average daily activity differed across participants within each study group, suggesting variability in physical activity patterns that may be relevant for future analyses combining wearable behavior with CGM measurements. This wearable-derived activity measure provides a foundation for examining relationships between physical activity, sleep, and glucose regulation.
+
+# Analysis Cohorts
+
+Two analysis cohorts were defined based on available data modalities.
+
+### CGM-only cohort
+
+The CGM-only cohort includes all participants with available continuous glucose monitoring (CGM) data. In the AI-READI v3 mini dataset, this cohort contains 100 participants across all four study groups: healthy, pre-diabetes lifestyle controlled, oral medication and/or non-insulin injectable medication controlled, and insulin-dependent groups.
+
+This cohort can be used to investigate glucose patterns, glycemic variability, average glucose levels, time in range, and other CGM-derived measures. However, the CGM-only cohort cannot evaluate relationships between glucose patterns and additional physiological measurements, such as wearable-derived sleep and physical activity patterns or clinical biomarkers.
+
+### CGM + wearable + clinical cohort
+
+The integrated CGM + wearable + clinical cohort includes participants with available continuous glucose monitoring data, wearable activity data, and clinical measurements. In the AI-READI v3 mini dataset, all 100 participants meet these criteria.
+
+This cohort supports multimodal analyses examining relationships between glucose patterns, sleep, physical activity, and clinical phenotypes such as HbA1c, BMI, and laboratory measurements. Because all participants in the mini dataset have complete availability across these modalities, the CGM-only cohort and the integrated cohort contain the same participants.
+
+These cohort definitions establish which scientific questions can be addressed using CGM data alone and which questions require integration of multiple physiological data sources.
+
+# Mini vs. Full Dataset
+
+This notebook was developed using the AI-READI v3 mini dataset to enable rapid development and debugging. The analysis was written using relative file paths and the `here()` package so that the same code can be applied to the full dataset by changing only the data directory. Running the notebook on the full dataset will increase the sample size while preserving the analysis workflow.
+
+# Interpretation
+
+The AI-READI v3 mini dataset contains a balanced cohort across three clinical sites and four study groups. All participants have CGM, wearable, and clinical data, making the dataset well suited for developing reproducible workflows before scaling to the full AI-READI dataset. The successful joins demonstrate that `person_id` serves as a reliable identifier for integrating participant-level information across modalities.
+
+# Conclusions
+
+An analysis-ready participant cohort was successfully assembled from the AI-READI v3 mini dataset. Participant characteristics, modality availability, and quality-control checks confirmed that the data can be integrated without participant loss. This cohort provides the foundation for subsequent analyses of continuous glucose monitoring, sleep, physical activity, and clinical phenotypes in the following weeks of the internship.

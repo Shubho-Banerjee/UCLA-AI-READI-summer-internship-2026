@@ -25,6 +25,41 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
 </style>
 
 
@@ -52,6 +87,24 @@ ul.task-list li input[type="checkbox"] {
    
   <ul>
   <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
+  <li><a href="#data-path" id="toc-data-path" class="nav-link" data-scroll-target="#data-path">Data Path</a></li>
+  <li><a href="#load-ai-readi-data" id="toc-load-ai-readi-data" class="nav-link" data-scroll-target="#load-ai-readi-data">Load AI-READI Data</a></li>
+  <li><a href="#build-cohort-table" id="toc-build-cohort-table" class="nav-link" data-scroll-target="#build-cohort-table">Build Cohort Table</a></li>
+  <li><a href="#quality-control" id="toc-quality-control" class="nav-link" data-scroll-target="#quality-control">Quality Control</a></li>
+  <li><a href="#table-1-participants-by-study-group" id="toc-table-1-participants-by-study-group" class="nav-link" data-scroll-target="#table-1-participants-by-study-group">Table 1: Participants by Study Group</a></li>
+  <li><a href="#table-2-participants-by-study-group-and-clinical-site" id="toc-table-2-participants-by-study-group-and-clinical-site" class="nav-link" data-scroll-target="#table-2-participants-by-study-group-and-clinical-site">Table 2: Participants by Study Group and Clinical Site</a></li>
+  <li><a href="#table-3-data-availability-summary" id="toc-table-3-data-availability-summary" class="nav-link" data-scroll-target="#table-3-data-availability-summary">Table 3: Data Availability Summary</a></li>
+  <li><a href="#figure-1-modality-availability-heatmap" id="toc-figure-1-modality-availability-heatmap" class="nav-link" data-scroll-target="#figure-1-modality-availability-heatmap">Figure 1: Modality Availability Heatmap</a></li>
+  <li><a href="#figure-2-average-cgm-glucose-by-study-group" id="toc-figure-2-average-cgm-glucose-by-study-group" class="nav-link" data-scroll-target="#figure-2-average-cgm-glucose-by-study-group">Figure 2: Average CGM Glucose by Study Group</a></li>
+  <li><a href="#figure-3-average-daily-activity-by-study-group" id="toc-figure-3-average-daily-activity-by-study-group" class="nav-link" data-scroll-target="#figure-3-average-daily-activity-by-study-group">Figure 3: Average Daily Activity by Study Group</a></li>
+  <li><a href="#analysis-cohorts" id="toc-analysis-cohorts" class="nav-link" data-scroll-target="#analysis-cohorts">Analysis Cohorts</a>
+  <ul class="collapse">
+  <li><a href="#cgm-only-cohort" id="toc-cgm-only-cohort" class="nav-link" data-scroll-target="#cgm-only-cohort">CGM-only cohort</a></li>
+  <li><a href="#cgm-wearable-clinical-cohort" id="toc-cgm-wearable-clinical-cohort" class="nav-link" data-scroll-target="#cgm-wearable-clinical-cohort">CGM + wearable + clinical cohort</a></li>
+  </ul></li>
+  <li><a href="#mini-vs.-full-dataset" id="toc-mini-vs.-full-dataset" class="nav-link" data-scroll-target="#mini-vs.-full-dataset">Mini vs.&nbsp;Full Dataset</a></li>
+  <li><a href="#interpretation" id="toc-interpretation" class="nav-link" data-scroll-target="#interpretation">Interpretation</a></li>
+  <li><a href="#conclusions" id="toc-conclusions" class="nav-link" data-scroll-target="#conclusions">Conclusions</a></li>
   </ul>
 </nav>
 </div>
@@ -92,7 +145,863 @@ ul.task-list li input[type="checkbox"] {
 
 <section id="introduction" class="level1">
 <h1>Introduction</h1>
-<p>The goal of this notebook is to assemble an analysis-ready cohort from the AI-READI dataset. Participant information is combined with CGM, wearable, and clinical data to summarize data availability, perform quality control checks, and define cohorts for future analysis.</p>
+<p>The goal of this notebook is to assemble the first analysis-ready AI-READI cohort. We combine participant-level information with modality manifests to determine which participants have continuous glucose monitoring (CGM), wearable, and clinical data available for analysis. We also perform quality-control checks on the joins, summarize participant characteristics, and identify analysis cohorts for future studies. This notebook was developed using the AI-READI mini dataset. If the full dataset becomes available, the same code should run after changing only the data path.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(knitr)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(here)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">options</span>(<span class="at">dplyr.summarise.inform =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">theme_set</span>(<span class="fu">theme_minimal</span>())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="data-path" class="level1">
+<h1>Data Path</h1>
+<p>The analysis was developed using the AI-READI v3 mini dataset. A single <code>data_dir</code> variable is used so that the notebook can be run on the full dataset later by changing only the data path.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>data_dir <span class="ot">&lt;-</span> <span class="fu">here</span>(<span class="st">"data"</span>, <span class="st">"mini"</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(data_dir)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "/Users/sban/Downloads/AI-READI SUMMER 2026/UCLA-AI-READI-summer-internship-2026/data/mini"</code></pre>
+</div>
+</div>
+</section>
+<section id="load-ai-readi-data" class="level1">
+<h1>Load AI-READI Data</h1>
+<p>This section loads the participant table and modality manifest files required for cohort assembly. File paths are defined relative to the project directory. The first table loaded is <code>participants.tsv</code>, which provides participant-level information and will serve as the foundation for joining modality-specific data. The AI-READI v3 mini dataset uses <strong><code>person_id</code></strong> as the participant identifier. This variable will be used as the key for all subsequent data joins.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Update the data path to the dataset root</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>data_dir <span class="ot">&lt;-</span> <span class="fu">here</span>(<span class="st">"data"</span>, <span class="st">"mini"</span>, <span class="st">"v3-mini"</span>)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(data_dir)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "/Users/sban/Downloads/AI-READI SUMMER 2026/UCLA-AI-READI-summer-internship-2026/data/mini/v3-mini"</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Show the top-level files</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="fu">list.files</span>(data_dir)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "ai_readi_master_cohort.csv" "cgm_all.rds"               
+[3] "dataset"                    "file-manifest.tsv"         </code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Show what's inside the dataset folder</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="fu">list.files</span>(<span class="fu">file.path</span>(data_dir, <span class="st">"dataset"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> [1] "cardiac_ecg"                        "CHANGELOG.md"                      
+ [3] "clinical_data"                      "dataset_description.json"          
+ [5] "dataset_structure_description.json" "environment"                       
+ [7] "healthsheet.md"                     "LICENSE.txt"                       
+ [9] "participants.json"                  "participants.tsv"                  
+[11] "README.md"                          "retinal_flio"                      
+[13] "retinal_oct"                        "retinal_octa"                      
+[15] "retinal_photography"                "study_description.json"            
+[17] "wearable_activity_monitor"          "wearable_blood_glucose"            </code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>participants <span class="ot">&lt;-</span> <span class="fu">read_tsv</span>(</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">file.path</span>(data_dir, <span class="st">"dataset"</span>, <span class="st">"participants.tsv"</span>),</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">show_col_types =</span> <span class="cn">FALSE</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(participants)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 100
+Columns: 15
+$ person_id                 &lt;dbl&gt; 1029, 1042, 1046, 1054, 1055, 1073, 1110, 11…
+$ clinical_site             &lt;chr&gt; "UW", "UW", "UW", "UW", "UW", "UW", "UW", "U…
+$ study_group               &lt;chr&gt; "pre_diabetes_lifestyle_controlled", "health…
+$ age                       &lt;dbl&gt; 73, 40, 50, 71, 67, 40, 61, 76, 59, 68, 73, …
+$ study_visit_date          &lt;date&gt; 2023-09-07, 2023-10-11, 2023-10-17, 2023-10…
+$ recommended_split         &lt;chr&gt; "train", "train", "train", "train", "train",…
+$ cardiac_ecg               &lt;lgl&gt; TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TR…
+$ clinical_data             &lt;lgl&gt; TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TR…
+$ environment               &lt;lgl&gt; TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TR…
+$ retinal_flio              &lt;lgl&gt; TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TR…
+$ retinal_oct               &lt;lgl&gt; TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TR…
+$ retinal_octa              &lt;lgl&gt; TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TR…
+$ retinal_photography       &lt;lgl&gt; TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TR…
+$ wearable_activity_monitor &lt;lgl&gt; TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TR…
+$ wearable_blood_glucose    &lt;lgl&gt; TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TR…</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(participants)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> [1] "person_id"                 "clinical_site"            
+ [3] "study_group"               "age"                      
+ [5] "study_visit_date"          "recommended_split"        
+ [7] "cardiac_ecg"               "clinical_data"            
+ [9] "environment"               "retinal_flio"             
+[11] "retinal_oct"               "retinal_octa"             
+[13] "retinal_photography"       "wearable_activity_monitor"
+[15] "wearable_blood_glucose"   </code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>master_cohort <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">file.path</span>(data_dir, <span class="st">"ai_readi_master_cohort.csv"</span>),</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">show_col_types =</span> <span class="cn">FALSE</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(master_cohort)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 100
+Columns: 9
+$ person_id      &lt;dbl&gt; 1029, 1042, 1046, 1054, 1055, 1073, 1110, 1139, 1155, 1…
+$ ekg_path       &lt;chr&gt; "/mnt/boxdata/dataset/cardiac_ecg/ecg_12lead/philips_tc…
+$ fundus_dir     &lt;chr&gt; "/mnt/boxdata/dataset/retinal_photography/cfp/icare_eid…
+$ oct_dir        &lt;chr&gt; "/mnt/boxdata/dataset/retinal_oct/structural_oct/topcon…
+$ octa_dir       &lt;lgl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…
+$ flio_dir       &lt;chr&gt; "/mnt/boxdata/dataset/retinal_flio/flio/heidelberg_flio…
+$ Age_Scaled     &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ BMI_Scaled     &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+$ Glucose_Target &lt;dbl&gt; 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, …</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(master_cohort)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "person_id"      "ekg_path"       "fundus_dir"     "oct_dir"       
+[5] "octa_dir"       "flio_dir"       "Age_Scaled"     "BMI_Scaled"    
+[9] "Glucose_Target"</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Look inside the CGM folder</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="fu">list.files</span>(</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">file.path</span>(data_dir,</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>            <span class="st">"dataset"</span>,</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>            <span class="st">"wearable_blood_glucose"</span>)</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "continuous_glucose_monitoring" "manifest.tsv"                 </code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">list.files</span>(</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">file.path</span>(data_dir,</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>            <span class="st">"dataset"</span>,</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>            <span class="st">"wearable_blood_glucose"</span>),</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">recursive =</span> <span class="cn">TRUE</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  [1] "continuous_glucose_monitoring/dexcom_g6/1029/1029_DEX.json"
+  [2] "continuous_glucose_monitoring/dexcom_g6/1042/1042_DEX.json"
+  [3] "continuous_glucose_monitoring/dexcom_g6/1046/1046_DEX.json"
+  [4] "continuous_glucose_monitoring/dexcom_g6/1054/1054_DEX.json"
+  [5] "continuous_glucose_monitoring/dexcom_g6/1055/1055_DEX.json"
+  [6] "continuous_glucose_monitoring/dexcom_g6/1073/1073_DEX.json"
+  [7] "continuous_glucose_monitoring/dexcom_g6/1110/1110_DEX.json"
+  [8] "continuous_glucose_monitoring/dexcom_g6/1139/1139_DEX.json"
+  [9] "continuous_glucose_monitoring/dexcom_g6/1155/1155_DEX.json"
+ [10] "continuous_glucose_monitoring/dexcom_g6/1168/1168_DEX.json"
+ [11] "continuous_glucose_monitoring/dexcom_g6/1173/1173_DEX.json"
+ [12] "continuous_glucose_monitoring/dexcom_g6/1196/1196_DEX.json"
+ [13] "continuous_glucose_monitoring/dexcom_g6/1199/1199_DEX.json"
+ [14] "continuous_glucose_monitoring/dexcom_g6/1201/1201_DEX.json"
+ [15] "continuous_glucose_monitoring/dexcom_g6/1216/1216_DEX.json"
+ [16] "continuous_glucose_monitoring/dexcom_g6/1226/1226_DEX.json"
+ [17] "continuous_glucose_monitoring/dexcom_g6/1243/1243_DEX.json"
+ [18] "continuous_glucose_monitoring/dexcom_g6/1244/1244_DEX.json"
+ [19] "continuous_glucose_monitoring/dexcom_g6/1264/1264_DEX.json"
+ [20] "continuous_glucose_monitoring/dexcom_g6/1272/1272_DEX.json"
+ [21] "continuous_glucose_monitoring/dexcom_g6/1275/1275_DEX.json"
+ [22] "continuous_glucose_monitoring/dexcom_g6/1287/1287_DEX.json"
+ [23] "continuous_glucose_monitoring/dexcom_g6/1289/1289_DEX.json"
+ [24] "continuous_glucose_monitoring/dexcom_g6/1293/1293_DEX.json"
+ [25] "continuous_glucose_monitoring/dexcom_g6/1302/1302_DEX.json"
+ [26] "continuous_glucose_monitoring/dexcom_g6/1311/1311_DEX.json"
+ [27] "continuous_glucose_monitoring/dexcom_g6/1315/1315_DEX.json"
+ [28] "continuous_glucose_monitoring/dexcom_g6/1326/1326_DEX.json"
+ [29] "continuous_glucose_monitoring/dexcom_g6/1329/1329_DEX.json"
+ [30] "continuous_glucose_monitoring/dexcom_g6/1331/1331_DEX.json"
+ [31] "continuous_glucose_monitoring/dexcom_g6/1337/1337_DEX.json"
+ [32] "continuous_glucose_monitoring/dexcom_g6/1346/1346_DEX.json"
+ [33] "continuous_glucose_monitoring/dexcom_g6/1349/1349_DEX.json"
+ [34] "continuous_glucose_monitoring/dexcom_g6/1352/1352_DEX.json"
+ [35] "continuous_glucose_monitoring/dexcom_g6/1384/1384_DEX.json"
+ [36] "continuous_glucose_monitoring/dexcom_g6/4034/4034_DEX.json"
+ [37] "continuous_glucose_monitoring/dexcom_g6/4035/4035_DEX.json"
+ [38] "continuous_glucose_monitoring/dexcom_g6/4036/4036_DEX.json"
+ [39] "continuous_glucose_monitoring/dexcom_g6/4037/4037_DEX.json"
+ [40] "continuous_glucose_monitoring/dexcom_g6/4045/4045_DEX.json"
+ [41] "continuous_glucose_monitoring/dexcom_g6/4046/4046_DEX.json"
+ [42] "continuous_glucose_monitoring/dexcom_g6/4048/4048_DEX.json"
+ [43] "continuous_glucose_monitoring/dexcom_g6/4064/4064_DEX.json"
+ [44] "continuous_glucose_monitoring/dexcom_g6/4074/4074_DEX.json"
+ [45] "continuous_glucose_monitoring/dexcom_g6/4087/4087_DEX.json"
+ [46] "continuous_glucose_monitoring/dexcom_g6/4110/4110_DEX.json"
+ [47] "continuous_glucose_monitoring/dexcom_g6/4120/4120_DEX.json"
+ [48] "continuous_glucose_monitoring/dexcom_g6/4123/4123_DEX.json"
+ [49] "continuous_glucose_monitoring/dexcom_g6/4130/4130_DEX.json"
+ [50] "continuous_glucose_monitoring/dexcom_g6/4136/4136_DEX.json"
+ [51] "continuous_glucose_monitoring/dexcom_g6/4145/4145_DEX.json"
+ [52] "continuous_glucose_monitoring/dexcom_g6/4148/4148_DEX.json"
+ [53] "continuous_glucose_monitoring/dexcom_g6/4150/4150_DEX.json"
+ [54] "continuous_glucose_monitoring/dexcom_g6/4158/4158_DEX.json"
+ [55] "continuous_glucose_monitoring/dexcom_g6/4161/4161_DEX.json"
+ [56] "continuous_glucose_monitoring/dexcom_g6/4164/4164_DEX.json"
+ [57] "continuous_glucose_monitoring/dexcom_g6/4172/4172_DEX.json"
+ [58] "continuous_glucose_monitoring/dexcom_g6/4182/4182_DEX.json"
+ [59] "continuous_glucose_monitoring/dexcom_g6/4205/4205_DEX.json"
+ [60] "continuous_glucose_monitoring/dexcom_g6/4227/4227_DEX.json"
+ [61] "continuous_glucose_monitoring/dexcom_g6/4235/4235_DEX.json"
+ [62] "continuous_glucose_monitoring/dexcom_g6/4249/4249_DEX.json"
+ [63] "continuous_glucose_monitoring/dexcom_g6/4265/4265_DEX.json"
+ [64] "continuous_glucose_monitoring/dexcom_g6/4267/4267_DEX.json"
+ [65] "continuous_glucose_monitoring/dexcom_g6/4269/4269_DEX.json"
+ [66] "continuous_glucose_monitoring/dexcom_g6/4271/4271_DEX.json"
+ [67] "continuous_glucose_monitoring/dexcom_g6/4279/4279_DEX.json"
+ [68] "continuous_glucose_monitoring/dexcom_g6/4287/4287_DEX.json"
+ [69] "continuous_glucose_monitoring/dexcom_g6/4292/4292_DEX.json"
+ [70] "continuous_glucose_monitoring/dexcom_g6/4297/4297_DEX.json"
+ [71] "continuous_glucose_monitoring/dexcom_g6/7070/7070_DEX.json"
+ [72] "continuous_glucose_monitoring/dexcom_g6/7077/7077_DEX.json"
+ [73] "continuous_glucose_monitoring/dexcom_g6/7100/7100_DEX.json"
+ [74] "continuous_glucose_monitoring/dexcom_g6/7112/7112_DEX.json"
+ [75] "continuous_glucose_monitoring/dexcom_g6/7117/7117_DEX.json"
+ [76] "continuous_glucose_monitoring/dexcom_g6/7122/7122_DEX.json"
+ [77] "continuous_glucose_monitoring/dexcom_g6/7129/7129_DEX.json"
+ [78] "continuous_glucose_monitoring/dexcom_g6/7130/7130_DEX.json"
+ [79] "continuous_glucose_monitoring/dexcom_g6/7137/7137_DEX.json"
+ [80] "continuous_glucose_monitoring/dexcom_g6/7146/7146_DEX.json"
+ [81] "continuous_glucose_monitoring/dexcom_g6/7148/7148_DEX.json"
+ [82] "continuous_glucose_monitoring/dexcom_g6/7154/7154_DEX.json"
+ [83] "continuous_glucose_monitoring/dexcom_g6/7162/7162_DEX.json"
+ [84] "continuous_glucose_monitoring/dexcom_g6/7165/7165_DEX.json"
+ [85] "continuous_glucose_monitoring/dexcom_g6/7168/7168_DEX.json"
+ [86] "continuous_glucose_monitoring/dexcom_g6/7170/7170_DEX.json"
+ [87] "continuous_glucose_monitoring/dexcom_g6/7220/7220_DEX.json"
+ [88] "continuous_glucose_monitoring/dexcom_g6/7224/7224_DEX.json"
+ [89] "continuous_glucose_monitoring/dexcom_g6/7230/7230_DEX.json"
+ [90] "continuous_glucose_monitoring/dexcom_g6/7232/7232_DEX.json"
+ [91] "continuous_glucose_monitoring/dexcom_g6/7234/7234_DEX.json"
+ [92] "continuous_glucose_monitoring/dexcom_g6/7348/7348_DEX.json"
+ [93] "continuous_glucose_monitoring/dexcom_g6/7357/7357_DEX.json"
+ [94] "continuous_glucose_monitoring/dexcom_g6/7364/7364_DEX.json"
+ [95] "continuous_glucose_monitoring/dexcom_g6/7371/7371_DEX.json"
+ [96] "continuous_glucose_monitoring/dexcom_g6/7382/7382_DEX.json"
+ [97] "continuous_glucose_monitoring/dexcom_g6/7393/7393_DEX.json"
+ [98] "continuous_glucose_monitoring/dexcom_g6/7397/7397_DEX.json"
+ [99] "continuous_glucose_monitoring/dexcom_g6/7399/7399_DEX.json"
+[100] "continuous_glucose_monitoring/dexcom_g6/7402/7402_DEX.json"
+[101] "manifest.tsv"                                              </code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Read the CGM manifest</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>cgm_manifest <span class="ot">&lt;-</span> <span class="fu">read_tsv</span>(</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">file.path</span>(</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>    data_dir,</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">"dataset"</span>,</span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">"wearable_blood_glucose"</span>,</span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">"manifest.tsv"</span></span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>  ),</span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">show_col_types =</span> <span class="cn">FALSE</span></span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(cgm_manifest)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 100
+Columns: 8
+$ person_id                             &lt;dbl&gt; 1029, 1042, 1046, 1054, 1055, 10…
+$ glucose_filepath                      &lt;chr&gt; "/wearable_blood_glucose/continu…
+$ glucose_level_record_count            &lt;dbl&gt; 2856, 2845, 2856, 2835, 2843, 28…
+$ average_glucose_level_mg_dl           &lt;dbl&gt; 110.7066, 113.6858, 121.2496, 12…
+$ glucose_sensor_sampling_duration_days &lt;dbl&gt; 11, 11, 11, 11, 11, 11, 11, 10, …
+$ glucose_sensor_id                     &lt;chr&gt; "PG15103578", "PG15103578", "PG1…
+$ manufacturer                          &lt;chr&gt; "Dexcom", "Dexcom", "Dexcom", "D…
+$ manufacturer_model_name               &lt;chr&gt; "G6", "G6", "G6", "G6", "G6", "G…</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(cgm_manifest)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "person_id"                            
+[2] "glucose_filepath"                     
+[3] "glucose_level_record_count"           
+[4] "average_glucose_level_mg_dl"          
+[5] "glucose_sensor_sampling_duration_days"
+[6] "glucose_sensor_id"                    
+[7] "manufacturer"                         
+[8] "manufacturer_model_name"              </code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(cgm_manifest)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 6 × 8
+  person_id glucose_filepath       glucose_level_record…¹ average_glucose_leve…²
+      &lt;dbl&gt; &lt;chr&gt;                                   &lt;dbl&gt;                  &lt;dbl&gt;
+1      1029 /wearable_blood_gluco…                   2856                   111.
+2      1042 /wearable_blood_gluco…                   2845                   114.
+3      1046 /wearable_blood_gluco…                   2856                   121.
+4      1054 /wearable_blood_gluco…                   2835                   130.
+5      1055 /wearable_blood_gluco…                   2843                   118.
+6      1073 /wearable_blood_gluco…                   2856                   199.
+# ℹ abbreviated names: ¹​glucose_level_record_count,
+#   ²​average_glucose_level_mg_dl
+# ℹ 4 more variables: glucose_sensor_sampling_duration_days &lt;dbl&gt;,
+#   glucose_sensor_id &lt;chr&gt;, manufacturer &lt;chr&gt;, manufacturer_model_name &lt;chr&gt;</code></pre>
+</div>
+</div>
+</section>
+<section id="build-cohort-table" class="level1">
+<h1>Build Cohort Table</h1>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Explore the participant table</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Number of participants</span></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a><span class="fu">nrow</span>(participants)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 100</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Number of unique participants</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a><span class="fu">n_distinct</span>(participants<span class="sc">$</span>person_id)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 100</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Summary of age</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(participants<span class="sc">$</span>age)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+  40.00   50.00   63.00   62.06   71.50   86.00 </code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Participant counts by study group</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a><span class="fu">count</span>(participants, study_group)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 4 × 2
+  study_group                                                             n
+  &lt;chr&gt;                                                               &lt;int&gt;
+1 healthy                                                                31
+2 insulin_dependent                                                       6
+3 oral_medication_and_or_non_insulin_injectable_medication_controlled    33
+4 pre_diabetes_lifestyle_controlled                                      30</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Participant counts by clinical site</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a><span class="fu">count</span>(participants, clinical_site)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 3 × 2
+  clinical_site     n
+  &lt;chr&gt;         &lt;int&gt;
+1 UAB              30
+2 UCSD             35
+3 UW               35</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Participant counts by recommended split</span></span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a><span class="fu">count</span>(participants, recommended_split)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 1 × 2
+  recommended_split     n
+  &lt;chr&gt;             &lt;int&gt;
+1 train               100</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create the initial cohort table</span></span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>cohort <span class="ot">&lt;-</span> participants <span class="sc">%&gt;%</span></span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(</span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a>    person_id,</span>
+<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a>    age,</span>
+<span id="cb40-7"><a href="#cb40-7" aria-hidden="true" tabindex="-1"></a>    study_group,</span>
+<span id="cb40-8"><a href="#cb40-8" aria-hidden="true" tabindex="-1"></a>    clinical_site,</span>
+<span id="cb40-9"><a href="#cb40-9" aria-hidden="true" tabindex="-1"></a>    recommended_split,</span>
+<span id="cb40-10"><a href="#cb40-10" aria-hidden="true" tabindex="-1"></a>    wearable_blood_glucose,</span>
+<span id="cb40-11"><a href="#cb40-11" aria-hidden="true" tabindex="-1"></a>    wearable_activity_monitor,</span>
+<span id="cb40-12"><a href="#cb40-12" aria-hidden="true" tabindex="-1"></a>    clinical_data</span>
+<span id="cb40-13"><a href="#cb40-13" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
+<span id="cb40-14"><a href="#cb40-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(</span>
+<span id="cb40-15"><a href="#cb40-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">cgm_available =</span> wearable_blood_glucose,</span>
+<span id="cb40-16"><a href="#cb40-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">wearable_available =</span> wearable_activity_monitor,</span>
+<span id="cb40-17"><a href="#cb40-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">clinical_available =</span> clinical_data</span>
+<span id="cb40-18"><a href="#cb40-18" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb40-19"><a href="#cb40-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-20"><a href="#cb40-20" aria-hidden="true" tabindex="-1"></a><span class="co"># Inspect the cohort table</span></span>
+<span id="cb40-21"><a href="#cb40-21" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(cohort)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 100
+Columns: 8
+$ person_id          &lt;dbl&gt; 1029, 1042, 1046, 1054, 1055, 1073, 1110, 1139, 115…
+$ age                &lt;dbl&gt; 73, 40, 50, 71, 67, 40, 61, 76, 59, 68, 73, 48, 42,…
+$ study_group        &lt;chr&gt; "pre_diabetes_lifestyle_controlled", "healthy", "pr…
+$ clinical_site      &lt;chr&gt; "UW", "UW", "UW", "UW", "UW", "UW", "UW", "UW", "UW…
+$ recommended_split  &lt;chr&gt; "train", "train", "train", "train", "train", "train…
+$ cgm_available      &lt;lgl&gt; TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRU…
+$ wearable_available &lt;lgl&gt; TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRU…
+$ clinical_available &lt;lgl&gt; TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRU…</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(cohort)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 6 × 8
+  person_id   age study_group      clinical_site recommended_split cgm_available
+      &lt;dbl&gt; &lt;dbl&gt; &lt;chr&gt;            &lt;chr&gt;         &lt;chr&gt;             &lt;lgl&gt;        
+1      1029    73 pre_diabetes_li… UW            train             TRUE         
+2      1042    40 healthy          UW            train             TRUE         
+3      1046    50 pre_diabetes_li… UW            train             TRUE         
+4      1054    71 healthy          UW            train             TRUE         
+5      1055    67 healthy          UW            train             TRUE         
+6      1073    40 insulin_depende… UW            train             TRUE         
+# ℹ 2 more variables: wearable_available &lt;lgl&gt;, clinical_available &lt;lgl&gt;</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Add participant-level CGM summary</span></span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Record cohort size before CGM join</span></span>
+<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a>rows_before_cgm_join <span class="ot">&lt;-</span> <span class="fu">nrow</span>(cohort)</span>
+<span id="cb44-5"><a href="#cb44-5" aria-hidden="true" tabindex="-1"></a>ids_before_cgm_join <span class="ot">&lt;-</span> <span class="fu">n_distinct</span>(cohort<span class="sc">$</span>person_id)</span>
+<span id="cb44-6"><a href="#cb44-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-7"><a href="#cb44-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Join CGM manifest information</span></span>
+<span id="cb44-8"><a href="#cb44-8" aria-hidden="true" tabindex="-1"></a>cohort <span class="ot">&lt;-</span> cohort <span class="sc">%&gt;%</span></span>
+<span id="cb44-9"><a href="#cb44-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(</span>
+<span id="cb44-10"><a href="#cb44-10" aria-hidden="true" tabindex="-1"></a>    cgm_manifest <span class="sc">%&gt;%</span></span>
+<span id="cb44-11"><a href="#cb44-11" aria-hidden="true" tabindex="-1"></a>      <span class="fu">select</span>(</span>
+<span id="cb44-12"><a href="#cb44-12" aria-hidden="true" tabindex="-1"></a>        person_id,</span>
+<span id="cb44-13"><a href="#cb44-13" aria-hidden="true" tabindex="-1"></a>        average_glucose_level_mg_dl</span>
+<span id="cb44-14"><a href="#cb44-14" aria-hidden="true" tabindex="-1"></a>      ),</span>
+<span id="cb44-15"><a href="#cb44-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">by =</span> <span class="st">"person_id"</span></span>
+<span id="cb44-16"><a href="#cb44-16" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb44-17"><a href="#cb44-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-18"><a href="#cb44-18" aria-hidden="true" tabindex="-1"></a><span class="co"># Record cohort size after CGM join</span></span>
+<span id="cb44-19"><a href="#cb44-19" aria-hidden="true" tabindex="-1"></a>rows_after_cgm_join <span class="ot">&lt;-</span> <span class="fu">nrow</span>(cohort)</span>
+<span id="cb44-20"><a href="#cb44-20" aria-hidden="true" tabindex="-1"></a>ids_after_cgm_join <span class="ot">&lt;-</span> <span class="fu">n_distinct</span>(cohort<span class="sc">$</span>person_id)</span>
+<span id="cb44-21"><a href="#cb44-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-22"><a href="#cb44-22" aria-hidden="true" tabindex="-1"></a><span class="co"># Display join quality-control summary</span></span>
+<span id="cb44-23"><a href="#cb44-23" aria-hidden="true" tabindex="-1"></a><span class="fu">tibble</span>(</span>
+<span id="cb44-24"><a href="#cb44-24" aria-hidden="true" tabindex="-1"></a>  <span class="at">Measure =</span> <span class="fu">c</span>(</span>
+<span id="cb44-25"><a href="#cb44-25" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Rows before CGM join"</span>,</span>
+<span id="cb44-26"><a href="#cb44-26" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Rows after CGM join"</span>,</span>
+<span id="cb44-27"><a href="#cb44-27" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Unique participants before CGM join"</span>,</span>
+<span id="cb44-28"><a href="#cb44-28" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Unique participants after CGM join"</span></span>
+<span id="cb44-29"><a href="#cb44-29" aria-hidden="true" tabindex="-1"></a>  ),</span>
+<span id="cb44-30"><a href="#cb44-30" aria-hidden="true" tabindex="-1"></a>  <span class="at">Count =</span> <span class="fu">c</span>(</span>
+<span id="cb44-31"><a href="#cb44-31" aria-hidden="true" tabindex="-1"></a>    rows_before_cgm_join,</span>
+<span id="cb44-32"><a href="#cb44-32" aria-hidden="true" tabindex="-1"></a>    rows_after_cgm_join,</span>
+<span id="cb44-33"><a href="#cb44-33" aria-hidden="true" tabindex="-1"></a>    ids_before_cgm_join,</span>
+<span id="cb44-34"><a href="#cb44-34" aria-hidden="true" tabindex="-1"></a>    ids_after_cgm_join</span>
+<span id="cb44-35"><a href="#cb44-35" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb44-36"><a href="#cb44-36" aria-hidden="true" tabindex="-1"></a>) <span class="sc">%&gt;%</span></span>
+<span id="cb44-37"><a href="#cb44-37" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: left;">Measure</th>
+<th style="text-align: right;">Count</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Rows before CGM join</td>
+<td style="text-align: right;">100</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Rows after CGM join</td>
+<td style="text-align: right;">100</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Unique participants before CGM join</td>
+<td style="text-align: right;">100</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Unique participants after CGM join</td>
+<td style="text-align: right;">100</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(cohort)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 100
+Columns: 9
+$ person_id                   &lt;dbl&gt; 1029, 1042, 1046, 1054, 1055, 1073, 1110, …
+$ age                         &lt;dbl&gt; 73, 40, 50, 71, 67, 40, 61, 76, 59, 68, 73…
+$ study_group                 &lt;chr&gt; "pre_diabetes_lifestyle_controlled", "heal…
+$ clinical_site               &lt;chr&gt; "UW", "UW", "UW", "UW", "UW", "UW", "UW", …
+$ recommended_split           &lt;chr&gt; "train", "train", "train", "train", "train…
+$ cgm_available               &lt;lgl&gt; TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, …
+$ wearable_available          &lt;lgl&gt; TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, …
+$ clinical_available          &lt;lgl&gt; TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, …
+$ average_glucose_level_mg_dl &lt;dbl&gt; 110.7066, 113.6858, 121.2496, 129.7365, 11…</code></pre>
+</div>
+</div>
+<p>The AI-READI v3 mini dataset contains 100 unique participants with no duplicated <code>person_id</code> values. Participants range in age from 40 to 86 years, with a median age of 63 years and are distributed across four study groups and three clinical sites. All participants belong to the training split, making the mini dataset appropriate for developing and testing analysis code before applying it to the full dataset.</p>
+</section>
+<section id="quality-control" class="level1">
+<h1>Quality Control</h1>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb47"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Baseline quality-control checks</span></span>
+<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Number of rows</span></span>
+<span id="cb47-4"><a href="#cb47-4" aria-hidden="true" tabindex="-1"></a><span class="fu">nrow</span>(cohort)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 100</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb49"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Number of unique participants</span></span>
+<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a><span class="fu">n_distinct</span>(cohort<span class="sc">$</span>person_id)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 100</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb51"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Check for duplicated participant IDs</span></span>
+<span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sum</span>(<span class="fu">duplicated</span>(cohort<span class="sc">$</span>person_id))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb53"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Count missing values in each variable</span></span>
+<span id="cb53-2"><a href="#cb53-2" aria-hidden="true" tabindex="-1"></a><span class="fu">colSums</span>(<span class="fu">is.na</span>(cohort))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                  person_id                         age 
+                          0                           0 
+                study_group               clinical_site 
+                          0                           0 
+          recommended_split               cgm_available 
+                          0                           0 
+         wearable_available          clinical_available 
+                          0                           0 
+average_glucose_level_mg_dl 
+                          0 </code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb55"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Check that everyone still exists after the join</span></span>
+<span id="cb55-2"><a href="#cb55-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-3"><a href="#cb55-3" aria-hidden="true" tabindex="-1"></a>rows_before_cgm_join <span class="ot">&lt;-</span> <span class="fu">nrow</span>(cohort)</span>
+<span id="cb55-4"><a href="#cb55-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-5"><a href="#cb55-5" aria-hidden="true" tabindex="-1"></a>rows_after_cgm_join <span class="ot">&lt;-</span> <span class="fu">nrow</span>(cohort)</span>
+<span id="cb55-6"><a href="#cb55-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-7"><a href="#cb55-7" aria-hidden="true" tabindex="-1"></a><span class="fu">tibble</span>(</span>
+<span id="cb55-8"><a href="#cb55-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">step =</span> <span class="fu">c</span>(<span class="st">"Before CGM join"</span>, <span class="st">"After CGM join"</span>),</span>
+<span id="cb55-9"><a href="#cb55-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">rows =</span> <span class="fu">c</span>(rows_before_cgm_join, rows_after_cgm_join)</span>
+<span id="cb55-10"><a href="#cb55-10" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 2 × 2
+  step             rows
+  &lt;chr&gt;           &lt;int&gt;
+1 Before CGM join   100
+2 After CGM join    100</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb57"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a><span class="fu">n_distinct</span>(cohort<span class="sc">$</span>person_id)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 100</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb59"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sum</span>(<span class="fu">is.na</span>(cohort<span class="sc">$</span>average_glucose_level_mg_dl))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0</code></pre>
+</div>
+</div>
+<p>The initial cohort table contains 100 rows and 100 unique participants, indicating that each participant appears only once. No duplicated <code>person_id</code> values were detected. Missing-value counts provide a baseline assessment of data completeness before additional datasets are joined. The cohort table remained at 100 rows and 100 unique participants after joining the CGM manifest using <code>person_id</code>. No participants were lost during the join, and every participant had an average CGM glucose value available in the mini dataset.</p>
+</section>
+<section id="table-1-participants-by-study-group" class="level1">
+<h1>Table 1: Participants by Study Group</h1>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb61"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb61-1"><a href="#cb61-1" aria-hidden="true" tabindex="-1"></a>table1 <span class="ot">&lt;-</span> cohort <span class="sc">%&gt;%</span></span>
+<span id="cb61-2"><a href="#cb61-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(study_group, <span class="at">name =</span> <span class="st">"participants"</span>)</span>
+<span id="cb61-3"><a href="#cb61-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb61-4"><a href="#cb61-4" aria-hidden="true" tabindex="-1"></a><span class="fu">kable</span>(table1)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<colgroup>
+<col style="width: 83%">
+<col style="width: 16%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">study_group</th>
+<th style="text-align: right;">participants</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">healthy</td>
+<td style="text-align: right;">31</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">insulin_dependent</td>
+<td style="text-align: right;">6</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">oral_medication_and_or_non_insulin_injectable_medication_controlled</td>
+<td style="text-align: right;">33</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">pre_diabetes_lifestyle_controlled</td>
+<td style="text-align: right;">30</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>The mini dataset contains four study groups. The largest group is the oral medication/non-insulin injectable medication controlled group (33 participants), followed by the healthy (31 participants) and pre-diabetes lifestyle controlled (30 participants) groups. The insulin-dependent group is the smallest with 6 participants.</p>
+</section>
+<section id="table-2-participants-by-study-group-and-clinical-site" class="level1">
+<h1>Table 2: Participants by Study Group and Clinical Site</h1>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb62"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb62-1"><a href="#cb62-1" aria-hidden="true" tabindex="-1"></a>table2 <span class="ot">&lt;-</span> cohort <span class="sc">%&gt;%</span></span>
+<span id="cb62-2"><a href="#cb62-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(study_group, clinical_site)</span>
+<span id="cb62-3"><a href="#cb62-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb62-4"><a href="#cb62-4" aria-hidden="true" tabindex="-1"></a><span class="fu">kable</span>(table2)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<colgroup>
+<col style="width: 80%">
+<col style="width: 16%">
+<col style="width: 3%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">study_group</th>
+<th style="text-align: left;">clinical_site</th>
+<th style="text-align: right;">n</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">healthy</td>
+<td style="text-align: left;">UAB</td>
+<td style="text-align: right;">9</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">healthy</td>
+<td style="text-align: left;">UCSD</td>
+<td style="text-align: right;">8</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">healthy</td>
+<td style="text-align: left;">UW</td>
+<td style="text-align: right;">14</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">insulin_dependent</td>
+<td style="text-align: left;">UAB</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">insulin_dependent</td>
+<td style="text-align: left;">UCSD</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">insulin_dependent</td>
+<td style="text-align: left;">UW</td>
+<td style="text-align: right;">3</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">oral_medication_and_or_non_insulin_injectable_medication_controlled</td>
+<td style="text-align: left;">UAB</td>
+<td style="text-align: right;">12</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">oral_medication_and_or_non_insulin_injectable_medication_controlled</td>
+<td style="text-align: left;">UCSD</td>
+<td style="text-align: right;">11</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">oral_medication_and_or_non_insulin_injectable_medication_controlled</td>
+<td style="text-align: left;">UW</td>
+<td style="text-align: right;">10</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">pre_diabetes_lifestyle_controlled</td>
+<td style="text-align: left;">UAB</td>
+<td style="text-align: right;">8</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">pre_diabetes_lifestyle_controlled</td>
+<td style="text-align: left;">UCSD</td>
+<td style="text-align: right;">14</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">pre_diabetes_lifestyle_controlled</td>
+<td style="text-align: left;">UW</td>
+<td style="text-align: right;">8</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>Participants were distributed across all three clinical sites, with UCSD and UW contributing the largest numbers of participants. Each study group was represented at each site, suggesting that the mini dataset captures variation across both disease groups and recruitment locations. The insulin-dependent group had fewer participants across all sites, which should be considered when interpreting subgroup comparisons.</p>
+</section>
+<section id="table-3-data-availability-summary" class="level1">
+<h1>Table 3: Data Availability Summary</h1>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb63"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb63-1"><a href="#cb63-1" aria-hidden="true" tabindex="-1"></a>table3 <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb63-2"><a href="#cb63-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">Dataset =</span> <span class="fu">c</span>(</span>
+<span id="cb63-3"><a href="#cb63-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"CGM"</span>,</span>
+<span id="cb63-4"><a href="#cb63-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Wearable"</span>,</span>
+<span id="cb63-5"><a href="#cb63-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Clinical"</span>,</span>
+<span id="cb63-6"><a href="#cb63-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">"CGM + Wearable"</span>,</span>
+<span id="cb63-7"><a href="#cb63-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">"CGM + Wearable + Clinical"</span></span>
+<span id="cb63-8"><a href="#cb63-8" aria-hidden="true" tabindex="-1"></a>  ),</span>
+<span id="cb63-9"><a href="#cb63-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">Participants =</span> <span class="fu">c</span>(</span>
+<span id="cb63-10"><a href="#cb63-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">sum</span>(cohort<span class="sc">$</span>cgm_available),</span>
+<span id="cb63-11"><a href="#cb63-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">sum</span>(cohort<span class="sc">$</span>wearable_available),</span>
+<span id="cb63-12"><a href="#cb63-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">sum</span>(cohort<span class="sc">$</span>clinical_available),</span>
+<span id="cb63-13"><a href="#cb63-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">sum</span>(cohort<span class="sc">$</span>cgm_available <span class="sc">&amp;</span></span>
+<span id="cb63-14"><a href="#cb63-14" aria-hidden="true" tabindex="-1"></a>          cohort<span class="sc">$</span>wearable_available),</span>
+<span id="cb63-15"><a href="#cb63-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">sum</span>(cohort<span class="sc">$</span>cgm_available <span class="sc">&amp;</span></span>
+<span id="cb63-16"><a href="#cb63-16" aria-hidden="true" tabindex="-1"></a>          cohort<span class="sc">$</span>wearable_available <span class="sc">&amp;</span></span>
+<span id="cb63-17"><a href="#cb63-17" aria-hidden="true" tabindex="-1"></a>          cohort<span class="sc">$</span>clinical_available)</span>
+<span id="cb63-18"><a href="#cb63-18" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb63-19"><a href="#cb63-19" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb63-20"><a href="#cb63-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb63-21"><a href="#cb63-21" aria-hidden="true" tabindex="-1"></a><span class="fu">kable</span>(table3)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: left;">Dataset</th>
+<th style="text-align: right;">Participants</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">CGM</td>
+<td style="text-align: right;">100</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Wearable</td>
+<td style="text-align: right;">100</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Clinical</td>
+<td style="text-align: right;">100</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">CGM + Wearable</td>
+<td style="text-align: right;">100</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">CGM + Wearable + Clinical</td>
+<td style="text-align: right;">100</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>All 100 participants have CGM, wearable, and clinical data available. Therefore, every participant qualifies for analyses requiring all three modalities in the mini dataset.</p>
+</section>
+<section id="figure-1-modality-availability-heatmap" class="level1">
+<h1>Figure 1: Modality Availability Heatmap</h1>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb64"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb64-1"><a href="#cb64-1" aria-hidden="true" tabindex="-1"></a>heatmap_data <span class="ot">&lt;-</span> cohort <span class="sc">%&gt;%</span></span>
+<span id="cb64-2"><a href="#cb64-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(</span>
+<span id="cb64-3"><a href="#cb64-3" aria-hidden="true" tabindex="-1"></a>    person_id,</span>
+<span id="cb64-4"><a href="#cb64-4" aria-hidden="true" tabindex="-1"></a>    cgm_available,</span>
+<span id="cb64-5"><a href="#cb64-5" aria-hidden="true" tabindex="-1"></a>    wearable_available,</span>
+<span id="cb64-6"><a href="#cb64-6" aria-hidden="true" tabindex="-1"></a>    clinical_available</span>
+<span id="cb64-7"><a href="#cb64-7" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
+<span id="cb64-8"><a href="#cb64-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(</span>
+<span id="cb64-9"><a href="#cb64-9" aria-hidden="true" tabindex="-1"></a>    <span class="sc">-</span>person_id,</span>
+<span id="cb64-10"><a href="#cb64-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">names_to =</span> <span class="st">"modality"</span>,</span>
+<span id="cb64-11"><a href="#cb64-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">values_to =</span> <span class="st">"available"</span></span>
+<span id="cb64-12"><a href="#cb64-12" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb64-13"><a href="#cb64-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb64-14"><a href="#cb64-14" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(</span>
+<span id="cb64-15"><a href="#cb64-15" aria-hidden="true" tabindex="-1"></a>  heatmap_data,</span>
+<span id="cb64-16"><a href="#cb64-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x =</span> modality,</span>
+<span id="cb64-17"><a href="#cb64-17" aria-hidden="true" tabindex="-1"></a>      <span class="at">y =</span> <span class="fu">factor</span>(person_id),</span>
+<span id="cb64-18"><a href="#cb64-18" aria-hidden="true" tabindex="-1"></a>      <span class="at">fill =</span> available)</span>
+<span id="cb64-19"><a href="#cb64-19" aria-hidden="true" tabindex="-1"></a>) <span class="sc">+</span></span>
+<span id="cb64-20"><a href="#cb64-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_tile</span>() <span class="sc">+</span></span>
+<span id="cb64-21"><a href="#cb64-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb64-22"><a href="#cb64-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Modality"</span>,</span>
+<span id="cb64-23"><a href="#cb64-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Participant"</span>,</span>
+<span id="cb64-24"><a href="#cb64-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">fill =</span> <span class="st">"Available"</span></span>
+<span id="cb64-25"><a href="#cb64-25" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="01_cohort_assembly_files/figure-html/unnamed-chunk-9-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="figure-2-average-cgm-glucose-by-study-group" class="level1">
+<h1>Figure 2: Average CGM Glucose by Study Group</h1>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb65"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb65-1"><a href="#cb65-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(</span>
+<span id="cb65-2"><a href="#cb65-2" aria-hidden="true" tabindex="-1"></a>  cohort,</span>
+<span id="cb65-3"><a href="#cb65-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(</span>
+<span id="cb65-4"><a href="#cb65-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> study_group,</span>
+<span id="cb65-5"><a href="#cb65-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> average_glucose_level_mg_dl</span>
+<span id="cb65-6"><a href="#cb65-6" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb65-7"><a href="#cb65-7" aria-hidden="true" tabindex="-1"></a>) <span class="sc">+</span></span>
+<span id="cb65-8"><a href="#cb65-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_boxplot</span>() <span class="sc">+</span></span>
+<span id="cb65-9"><a href="#cb65-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb65-10"><a href="#cb65-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Study Group"</span>,</span>
+<span id="cb65-11"><a href="#cb65-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Average CGM Glucose (mg/dL)"</span></span>
+<span id="cb65-12"><a href="#cb65-12" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb65-13"><a href="#cb65-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">axis.text.x =</span> <span class="fu">element_text</span>(<span class="at">angle =</span> <span class="dv">20</span>, <span class="at">hjust =</span> <span class="dv">1</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="01_cohort_assembly_files/figure-html/unnamed-chunk-10-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="figure-3-average-daily-activity-by-study-group" class="level1">
+<h1>Figure 3: Average Daily Activity by Study Group</h1>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb66"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb66-1"><a href="#cb66-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Read wearable manifest</span></span>
+<span id="cb66-2"><a href="#cb66-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb66-3"><a href="#cb66-3" aria-hidden="true" tabindex="-1"></a>wearable_manifest <span class="ot">&lt;-</span> <span class="fu">read_tsv</span>(</span>
+<span id="cb66-4"><a href="#cb66-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">file.path</span>(</span>
+<span id="cb66-5"><a href="#cb66-5" aria-hidden="true" tabindex="-1"></a>    data_dir,</span>
+<span id="cb66-6"><a href="#cb66-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">"dataset"</span>,</span>
+<span id="cb66-7"><a href="#cb66-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">"wearable_activity_monitor"</span>,</span>
+<span id="cb66-8"><a href="#cb66-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">"manifest.tsv"</span></span>
+<span id="cb66-9"><a href="#cb66-9" aria-hidden="true" tabindex="-1"></a>  ),</span>
+<span id="cb66-10"><a href="#cb66-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">show_col_types =</span> <span class="cn">FALSE</span></span>
+<span id="cb66-11"><a href="#cb66-11" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb66-12"><a href="#cb66-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb66-13"><a href="#cb66-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Add average daily activity to cohort table</span></span>
+<span id="cb66-14"><a href="#cb66-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb66-15"><a href="#cb66-15" aria-hidden="true" tabindex="-1"></a>cohort <span class="ot">&lt;-</span> cohort <span class="sc">%&gt;%</span></span>
+<span id="cb66-16"><a href="#cb66-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(</span>
+<span id="cb66-17"><a href="#cb66-17" aria-hidden="true" tabindex="-1"></a>    wearable_manifest <span class="sc">%&gt;%</span></span>
+<span id="cb66-18"><a href="#cb66-18" aria-hidden="true" tabindex="-1"></a>      <span class="fu">select</span>(</span>
+<span id="cb66-19"><a href="#cb66-19" aria-hidden="true" tabindex="-1"></a>        person_id,</span>
+<span id="cb66-20"><a href="#cb66-20" aria-hidden="true" tabindex="-1"></a>        average_daily_activity</span>
+<span id="cb66-21"><a href="#cb66-21" aria-hidden="true" tabindex="-1"></a>      ),</span>
+<span id="cb66-22"><a href="#cb66-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">by =</span> <span class="st">"person_id"</span></span>
+<span id="cb66-23"><a href="#cb66-23" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb66-24"><a href="#cb66-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb66-25"><a href="#cb66-25" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot average daily activity by study group</span></span>
+<span id="cb66-26"><a href="#cb66-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb66-27"><a href="#cb66-27" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(</span>
+<span id="cb66-28"><a href="#cb66-28" aria-hidden="true" tabindex="-1"></a>  cohort,</span>
+<span id="cb66-29"><a href="#cb66-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(</span>
+<span id="cb66-30"><a href="#cb66-30" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> study_group,</span>
+<span id="cb66-31"><a href="#cb66-31" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> average_daily_activity</span>
+<span id="cb66-32"><a href="#cb66-32" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb66-33"><a href="#cb66-33" aria-hidden="true" tabindex="-1"></a>) <span class="sc">+</span></span>
+<span id="cb66-34"><a href="#cb66-34" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_boxplot</span>() <span class="sc">+</span></span>
+<span id="cb66-35"><a href="#cb66-35" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb66-36"><a href="#cb66-36" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Study Group"</span>,</span>
+<span id="cb66-37"><a href="#cb66-37" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Average Daily Activity"</span></span>
+<span id="cb66-38"><a href="#cb66-38" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb66-39"><a href="#cb66-39" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(</span>
+<span id="cb66-40"><a href="#cb66-40" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.text.x =</span> <span class="fu">element_text</span>(<span class="at">angle =</span> <span class="dv">20</span>, <span class="at">hjust =</span> <span class="dv">1</span>)</span>
+<span id="cb66-41"><a href="#cb66-41" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="01_cohort_assembly_files/figure-html/unnamed-chunk-11-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The wearable activity manifest was available for all 100 participants in the AI-READI v3 mini dataset. Average daily activity differed across participants within each study group, suggesting variability in physical activity patterns that may be relevant for future analyses combining wearable behavior with CGM measurements. This wearable-derived activity measure provides a foundation for examining relationships between physical activity, sleep, and glucose regulation.</p>
+</section>
+<section id="analysis-cohorts" class="level1">
+<h1>Analysis Cohorts</h1>
+<p>Two analysis cohorts were defined based on available data modalities.</p>
+<section id="cgm-only-cohort" class="level3">
+<h3 class="anchored" data-anchor-id="cgm-only-cohort">CGM-only cohort</h3>
+<p>The CGM-only cohort includes all participants with available continuous glucose monitoring (CGM) data. In the AI-READI v3 mini dataset, this cohort contains 100 participants across all four study groups: healthy, pre-diabetes lifestyle controlled, oral medication and/or non-insulin injectable medication controlled, and insulin-dependent groups.</p>
+<p>This cohort can be used to investigate glucose patterns, glycemic variability, average glucose levels, time in range, and other CGM-derived measures. However, the CGM-only cohort cannot evaluate relationships between glucose patterns and additional physiological measurements, such as wearable-derived sleep and physical activity patterns or clinical biomarkers.</p>
+</section>
+<section id="cgm-wearable-clinical-cohort" class="level3">
+<h3 class="anchored" data-anchor-id="cgm-wearable-clinical-cohort">CGM + wearable + clinical cohort</h3>
+<p>The integrated CGM + wearable + clinical cohort includes participants with available continuous glucose monitoring data, wearable activity data, and clinical measurements. In the AI-READI v3 mini dataset, all 100 participants meet these criteria.</p>
+<p>This cohort supports multimodal analyses examining relationships between glucose patterns, sleep, physical activity, and clinical phenotypes such as HbA1c, BMI, and laboratory measurements. Because all participants in the mini dataset have complete availability across these modalities, the CGM-only cohort and the integrated cohort contain the same participants.</p>
+<p>These cohort definitions establish which scientific questions can be addressed using CGM data alone and which questions require integration of multiple physiological data sources.</p>
+</section>
+</section>
+<section id="mini-vs.-full-dataset" class="level1">
+<h1>Mini vs.&nbsp;Full Dataset</h1>
+<p>This notebook was developed using the AI-READI v3 mini dataset to enable rapid development and debugging. The analysis was written using relative file paths and the <code>here()</code> package so that the same code can be applied to the full dataset by changing only the data directory. Running the notebook on the full dataset will increase the sample size while preserving the analysis workflow.</p>
+</section>
+<section id="interpretation" class="level1">
+<h1>Interpretation</h1>
+<p>The AI-READI v3 mini dataset contains a balanced cohort across three clinical sites and four study groups. All participants have CGM, wearable, and clinical data, making the dataset well suited for developing reproducible workflows before scaling to the full AI-READI dataset. The successful joins demonstrate that <code>person_id</code> serves as a reliable identifier for integrating participant-level information across modalities.</p>
+</section>
+<section id="conclusions" class="level1">
+<h1>Conclusions</h1>
+<p>An analysis-ready participant cohort was successfully assembled from the AI-READI v3 mini dataset. Participant characteristics, modality availability, and quality-control checks confirmed that the data can be integrated without participant loss. This cohort provides the foundation for subsequent analyses of continuous glucose monitoring, sleep, physical activity, and clinical phenotypes in the following weeks of the internship.</p>
 </section>
 
 </main>
