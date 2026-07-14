@@ -230,6 +230,7 @@ The initial cohort table contains 100 rows and 100 unique participants, indicati
 # Table 1: Participants by Study Group
 
 ```{r}
+#| echo: false
 table1 <- cohort %>%
   count(study_group, name = "participants")
 
@@ -241,6 +242,7 @@ The mini dataset contains four study groups. The largest group is the oral medic
 # Table 2: Participants by Study Group and Clinical Site
 
 ```{r}
+#| echo: false
 table2 <- cohort %>%
   count(study_group, clinical_site)
 
@@ -252,6 +254,7 @@ Participants were distributed across all three clinical sites, with UCSD and UW 
 # Table 3: Data Availability Summary
 
 ```{r}
+#| echo: false
 table3 <- tibble(
   Dataset = c(
     "CGM",
@@ -280,6 +283,7 @@ All 100 participants have CGM, wearable, and clinical data available. Therefore,
 # Figure 1: Modality Availability Heatmap
 
 ```{r}
+#| echo: false
 heatmap_data <- cohort %>%
   select(
     person_id,
@@ -307,9 +311,12 @@ ggplot(
   )
 ```
 
+The heatmap shows the availability of CGM, wearable, and clinical data for each participant in the AI-READI v3 mini dataset. Every participant has all three modalities available, indicating there are no missing data for these key sources in the mini dataset. This complete modality coverage makes the dataset well suited for developing and testing multimodal analysis workflows.
+
 # Figure 2: Average CGM Glucose by Study Group
 
 ```{r}
+#| echo: false
 ggplot(
   cohort,
   aes(
@@ -325,9 +332,12 @@ ggplot(
   theme(axis.text.x = element_text(angle = 20, hjust = 1))
 ```
 
+The boxplots compare the distribution of average CGM glucose across the four study groups. The study groups show different glucose distributions, with some groups having higher median glucose levels and greater variability than others. These descriptive patterns provide an initial view of glycemic differences that can be explored further using more detailed CGM metrics in later analyses.
+
 # Figure 3: Average Daily Activity by Study Group
 
 ```{r}
+#| echo: false
 # Read wearable manifest
 
 wearable_manifest <- read_tsv(
