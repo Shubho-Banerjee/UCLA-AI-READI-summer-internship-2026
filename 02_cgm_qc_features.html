@@ -163,8 +163,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>I first tested the workflow using one participant and then applied the final pipeline to five CGM participants from the AI-READI mini dataset.</p>
 <p>For this assignment, I used all valid CGM days available (up to about 10 days). The AGP-style figure shown here is for learning and visualization purposes only. It should not be considered a clinical 14-day AGP report.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(jsonlite)</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(jsonlite)   <span class="co"># reads the raw Dexcom JSON files</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr)      <span class="co"># table cleaning/summarizing (filter, mutate, summarise, etc.)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>
 Attaching package: 'dplyr'</code></pre>
@@ -179,7 +179,7 @@ Attaching package: 'dplyr'</code></pre>
 
     intersect, setdiff, setequal, union</code></pre>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(lubridate)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(lubridate)  <span class="co"># date/time parsing and timezone conversion</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>
 Attaching package: 'lubridate'</code></pre>
@@ -189,27 +189,23 @@ Attaching package: 'lubridate'</code></pre>
 
     date, intersect, setdiff, union</code></pre>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(scales)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)    <span class="co"># figures</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(scales)     <span class="co"># axis formatting helpers for ggplot2</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="identify-cgm-participants" class="level1">
 <h1>1. Identify CGM Participants</h1>
-<p>The Dexcom files are stored in separate folders for each participant. I identified the available CGM participants and selected five participants to test the workflow.</p>
+<p>Dexcom files are stored in one folder per participant. <code>list.dirs()</code> lists every participant sub-folder; <code>recursive = FALSE</code> keeps it to one level deep. The first five folders were selected to build and test the pipeline before scaling up.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>dex_path <span class="ot">&lt;-</span> <span class="st">"data/mini/v3-mini/dataset/wearable_blood_glucose/continuous_glucose_monitoring/dexcom_g6"</span></span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>participants <span class="ot">&lt;-</span> <span class="fu">list.dirs</span>(</span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>  dex_path,</span>
-<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">recursive =</span> <span class="cn">FALSE</span></span>
-<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>participants_5 <span class="ot">&lt;-</span> participants[<span class="dv">1</span><span class="sc">:</span><span class="dv">5</span>]</span>
-<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>participants_5</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>participants <span class="ot">&lt;-</span> <span class="fu">list.dirs</span>(</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  dex_path,</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">recursive =</span> <span class="cn">FALSE</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>participants_5 <span class="ot">&lt;-</span> participants[<span class="dv">1</span><span class="sc">:</span><span class="dv">5</span>]</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>participants_5</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] "data/mini/v3-mini/dataset/wearable_blood_glucose/continuous_glucose_monitoring/dexcom_g6/1029"
 [2] "data/mini/v3-mini/dataset/wearable_blood_glucose/continuous_glucose_monitoring/dexcom_g6/1042"
@@ -221,14 +217,10 @@ Attaching package: 'lubridate'</code></pre>
 </section>
 <section id="create-cgm-cleaning-function" class="level1">
 <h1>2. Create CGM Cleaning Function</h1>
-<p>Each Dexcom JSON file contains participant information and CGM measurements.</p>
-<p>The cleaning function:</p>
-<ul>
-<li><p>keeps only glucose measurement events (EGV)</p></li>
-<li><p>extracts participant ID, timestamps, glucose values, and units</p></li>
-<li><p>converts timestamps from UTC to local time</p></li>
-<li><p>creates local date and hour variables</p></li>
-</ul>
+<p>Each Dexcom JSON file has a header (participant ID, timezone) and a body (the glucose readings). This function turns one raw file into one clean table. <code>flatten = TRUE</code> collapses nested JSON fields into single dot-named columns (e.g.&nbsp;<code>blood_glucose.value</code>). The <code>if</code> block is a safety net that only runs if <code>dex$body</code> didn’t parse into a clean table already. It forces each reading into its own row and stacks them.</p>
+<p><code>filter(event_type == "EGV")</code> keeps only actual glucose readings (EGV = Estimated Glucose Value), excluding calibration/alert events. <code>transmute()</code> (rather than <code>mutate()</code>) builds a fresh table with only these named columns, dropping every other raw JSON field. <code>as.numeric(blood_glucose.value)</code> converts text to numbers; anything non-numeric silently becomes <code>NA</code>. This is the source of the missing glucose values found later.</p>
+<p><code>tz_choice</code> maps the device’s raw timezone label to a proper IANA timezone name. IANA names (e.g.&nbsp;<code>America/Los_Angeles</code>) carry real daylight-saving rules for that region, so R can correctly switch between standard/daylight time automatically, as a raw label like “pst” alone can’t do that. <code>TRUE ~ "UTC"</code> is the fallback if nothing matches.</p>
+<p>The final <code>mutate()</code> (not <code>transmute()</code>, since we want to keep everything built so far) parses the raw timestamp as UTC, converts it to local time, and derives local date/hour and a daylight-saving flag.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>clean_cgm_file <span class="ot">&lt;-</span> <span class="cf">function</span>(file_path){</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  </span>
@@ -237,57 +229,54 @@ Attaching package: 'lubridate'</code></pre>
 <span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">flatten =</span> <span class="cn">TRUE</span></span>
 <span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>  )</span>
 <span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Extract Dexcom CGM event table</span></span>
-<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>  cgm_egv <span class="ot">&lt;-</span> dex<span class="sc">$</span>body</span>
-<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">is.list</span>(cgm_egv) <span class="sc">&amp;&amp;</span> <span class="sc">!</span><span class="st">"event_type"</span> <span class="sc">%in%</span> <span class="fu">names</span>(cgm_egv)) {</span>
-<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>    cgm_egv <span class="ot">&lt;-</span> <span class="fu">do.call</span>(</span>
-<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>      rbind,</span>
-<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>      <span class="fu">lapply</span>(cgm_egv, as.data.frame)</span>
-<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a>  }</span>
-<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a>  cgm_egv <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(cgm_egv)</span>
-<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a>  cgm_clean <span class="ot">&lt;-</span> cgm_egv <span class="sc">%&gt;%</span></span>
-<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(event_type <span class="sc">==</span> <span class="st">"EGV"</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb11-26"><a href="#cb11-26" aria-hidden="true" tabindex="-1"></a>    <span class="fu">transmute</span>(</span>
-<span id="cb11-27"><a href="#cb11-27" aria-hidden="true" tabindex="-1"></a>      <span class="at">person_id =</span> dex<span class="sc">$</span>header<span class="sc">$</span>patient_id,</span>
-<span id="cb11-28"><a href="#cb11-28" aria-hidden="true" tabindex="-1"></a>      event_type,</span>
-<span id="cb11-29"><a href="#cb11-29" aria-hidden="true" tabindex="-1"></a>      <span class="at">time_utc =</span> effective_time_frame.time_interval.start_date_time,</span>
-<span id="cb11-30"><a href="#cb11-30" aria-hidden="true" tabindex="-1"></a>      <span class="at">timezone_abbreviation =</span> dex<span class="sc">$</span>header<span class="sc">$</span>timezone,</span>
-<span id="cb11-31"><a href="#cb11-31" aria-hidden="true" tabindex="-1"></a>      <span class="at">glucose =</span> <span class="fu">as.numeric</span>(blood_glucose.value),</span>
-<span id="cb11-32"><a href="#cb11-32" aria-hidden="true" tabindex="-1"></a>      <span class="at">glucose_unit =</span> blood_glucose.unit</span>
-<span id="cb11-33"><a href="#cb11-33" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb11-34"><a href="#cb11-34" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb11-35"><a href="#cb11-35" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb11-36"><a href="#cb11-36" aria-hidden="true" tabindex="-1"></a>  tz_choice <span class="ot">&lt;-</span> <span class="fu">case_when</span>(</span>
-<span id="cb11-37"><a href="#cb11-37" aria-hidden="true" tabindex="-1"></a>    cgm_clean<span class="sc">$</span>timezone_abbreviation[<span class="dv">1</span>] <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"pst"</span>,<span class="st">"pdt"</span>) <span class="sc">~</span> <span class="st">"America/Los_Angeles"</span>,</span>
-<span id="cb11-38"><a href="#cb11-38" aria-hidden="true" tabindex="-1"></a>    cgm_clean<span class="sc">$</span>timezone_abbreviation[<span class="dv">1</span>] <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"mst"</span>,<span class="st">"mdt"</span>) <span class="sc">~</span> <span class="st">"America/Denver"</span>,</span>
-<span id="cb11-39"><a href="#cb11-39" aria-hidden="true" tabindex="-1"></a>    cgm_clean<span class="sc">$</span>timezone_abbreviation[<span class="dv">1</span>] <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"cst"</span>,<span class="st">"cdt"</span>) <span class="sc">~</span> <span class="st">"America/Chicago"</span>,</span>
-<span id="cb11-40"><a href="#cb11-40" aria-hidden="true" tabindex="-1"></a>    cgm_clean<span class="sc">$</span>timezone_abbreviation[<span class="dv">1</span>] <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"est"</span>,<span class="st">"edt"</span>) <span class="sc">~</span> <span class="st">"America/New_York"</span>,</span>
-<span id="cb11-41"><a href="#cb11-41" aria-hidden="true" tabindex="-1"></a>    <span class="cn">TRUE</span> <span class="sc">~</span> <span class="st">"UTC"</span></span>
-<span id="cb11-42"><a href="#cb11-42" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb11-43"><a href="#cb11-43" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb11-44"><a href="#cb11-44" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb11-45"><a href="#cb11-45" aria-hidden="true" tabindex="-1"></a>  cgm_clean <span class="sc">%&gt;%</span></span>
-<span id="cb11-46"><a href="#cb11-46" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(</span>
-<span id="cb11-47"><a href="#cb11-47" aria-hidden="true" tabindex="-1"></a>      <span class="at">time_utc =</span> <span class="fu">ymd_hms</span>(time_utc, <span class="at">tz=</span><span class="st">"UTC"</span>),</span>
-<span id="cb11-48"><a href="#cb11-48" aria-hidden="true" tabindex="-1"></a>      <span class="at">time_local =</span> <span class="fu">with_tz</span>(time_utc, tz_choice),</span>
-<span id="cb11-49"><a href="#cb11-49" aria-hidden="true" tabindex="-1"></a>      <span class="at">date_local =</span> <span class="fu">as.Date</span>(time_local),</span>
-<span id="cb11-50"><a href="#cb11-50" aria-hidden="true" tabindex="-1"></a>      <span class="at">hour_local =</span> <span class="fu">hour</span>(time_local),</span>
-<span id="cb11-51"><a href="#cb11-51" aria-hidden="true" tabindex="-1"></a>      <span class="at">is_dst =</span> <span class="fu">dst</span>(time_local)</span>
-<span id="cb11-52"><a href="#cb11-52" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb11-53"><a href="#cb11-53" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb11-54"><a href="#cb11-54" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Extract Dexcom CGM event table</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>  cgm_egv <span class="ot">&lt;-</span> dex<span class="sc">$</span>body</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">is.list</span>(cgm_egv) <span class="sc">&amp;&amp;</span> <span class="sc">!</span><span class="st">"event_type"</span> <span class="sc">%in%</span> <span class="fu">names</span>(cgm_egv)) {</span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>    cgm_egv <span class="ot">&lt;-</span> <span class="fu">do.call</span>(</span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>      rbind,</span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>      <span class="fu">lapply</span>(cgm_egv, as.data.frame)</span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a>  cgm_egv <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(cgm_egv)</span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a>  cgm_clean <span class="ot">&lt;-</span> cgm_egv <span class="sc">%&gt;%</span></span>
+<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(event_type <span class="sc">==</span> <span class="st">"EGV"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a>    <span class="fu">transmute</span>(</span>
+<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a>      <span class="at">person_id =</span> dex<span class="sc">$</span>header<span class="sc">$</span>patient_id,</span>
+<span id="cb11-26"><a href="#cb11-26" aria-hidden="true" tabindex="-1"></a>      event_type,</span>
+<span id="cb11-27"><a href="#cb11-27" aria-hidden="true" tabindex="-1"></a>      <span class="at">time_utc =</span> effective_time_frame.time_interval.start_date_time,</span>
+<span id="cb11-28"><a href="#cb11-28" aria-hidden="true" tabindex="-1"></a>      <span class="at">timezone_abbreviation =</span> dex<span class="sc">$</span>header<span class="sc">$</span>timezone,</span>
+<span id="cb11-29"><a href="#cb11-29" aria-hidden="true" tabindex="-1"></a>      <span class="at">glucose =</span> <span class="fu">as.numeric</span>(blood_glucose.value),</span>
+<span id="cb11-30"><a href="#cb11-30" aria-hidden="true" tabindex="-1"></a>      <span class="at">glucose_unit =</span> blood_glucose.unit</span>
+<span id="cb11-31"><a href="#cb11-31" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb11-32"><a href="#cb11-32" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb11-33"><a href="#cb11-33" aria-hidden="true" tabindex="-1"></a>  tz_choice <span class="ot">&lt;-</span> <span class="fu">case_when</span>(</span>
+<span id="cb11-34"><a href="#cb11-34" aria-hidden="true" tabindex="-1"></a>    cgm_clean<span class="sc">$</span>timezone_abbreviation[<span class="dv">1</span>] <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"pst"</span>,<span class="st">"pdt"</span>) <span class="sc">~</span> <span class="st">"America/Los_Angeles"</span>,</span>
+<span id="cb11-35"><a href="#cb11-35" aria-hidden="true" tabindex="-1"></a>    cgm_clean<span class="sc">$</span>timezone_abbreviation[<span class="dv">1</span>] <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"mst"</span>,<span class="st">"mdt"</span>) <span class="sc">~</span> <span class="st">"America/Denver"</span>,</span>
+<span id="cb11-36"><a href="#cb11-36" aria-hidden="true" tabindex="-1"></a>    cgm_clean<span class="sc">$</span>timezone_abbreviation[<span class="dv">1</span>] <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"cst"</span>,<span class="st">"cdt"</span>) <span class="sc">~</span> <span class="st">"America/Chicago"</span>,</span>
+<span id="cb11-37"><a href="#cb11-37" aria-hidden="true" tabindex="-1"></a>    cgm_clean<span class="sc">$</span>timezone_abbreviation[<span class="dv">1</span>] <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"est"</span>,<span class="st">"edt"</span>) <span class="sc">~</span> <span class="st">"America/New_York"</span>,</span>
+<span id="cb11-38"><a href="#cb11-38" aria-hidden="true" tabindex="-1"></a>    <span class="cn">TRUE</span> <span class="sc">~</span> <span class="st">"UTC"</span></span>
+<span id="cb11-39"><a href="#cb11-39" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb11-40"><a href="#cb11-40" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb11-41"><a href="#cb11-41" aria-hidden="true" tabindex="-1"></a>  cgm_clean <span class="sc">%&gt;%</span></span>
+<span id="cb11-42"><a href="#cb11-42" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(</span>
+<span id="cb11-43"><a href="#cb11-43" aria-hidden="true" tabindex="-1"></a>      <span class="at">time_utc =</span> <span class="fu">ymd_hms</span>(time_utc, <span class="at">tz=</span><span class="st">"UTC"</span>),</span>
+<span id="cb11-44"><a href="#cb11-44" aria-hidden="true" tabindex="-1"></a>      <span class="at">time_local =</span> <span class="fu">with_tz</span>(time_utc, tz_choice),</span>
+<span id="cb11-45"><a href="#cb11-45" aria-hidden="true" tabindex="-1"></a>      <span class="at">date_local =</span> <span class="fu">as.Date</span>(time_local),</span>
+<span id="cb11-46"><a href="#cb11-46" aria-hidden="true" tabindex="-1"></a>      <span class="at">hour_local =</span> <span class="fu">hour</span>(time_local),</span>
+<span id="cb11-47"><a href="#cb11-47" aria-hidden="true" tabindex="-1"></a>      <span class="at">is_dst =</span> <span class="fu">dst</span>(time_local)</span>
+<span id="cb11-48"><a href="#cb11-48" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb11-49"><a href="#cb11-49" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb11-50"><a href="#cb11-50" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="apply-cleaning-pipeline-to-five-participants" class="level1">
 <h1>3. Apply Cleaning Pipeline to Five Participants</h1>
+<p>Runs <code>clean_cgm_file()</code> once per participant folder (returning a list of 5 tables), then <code>bind_rows()</code> stacks them into one combined table.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>cgm_all <span class="ot">&lt;-</span> <span class="fu">lapply</span>(</span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  participants_5,</span>
@@ -311,8 +300,7 @@ Caused by warning:
 </div>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>cgm_all <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(cgm_all)</span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(cgm_all)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(cgm_all)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>             person_id event_type            time_utc timezone_abbreviation
 cgm.1...1 AIREADI-1029        EGV 2023-09-07 21:08:07                   pst
@@ -336,6 +324,7 @@ AIREADI-1029 AIREADI-1042 AIREADI-1046 AIREADI-1054 AIREADI-1055
         2856         2845         2856         2835         2843 </code></pre>
 </div>
 </div>
+<p><code>table()</code> shows reading counts per participant: roughly 2,800–2,900 each, consistent with ~10 days at 288 readings/day.</p>
 <p>The cleaned dataset contains CGM readings from five AI-READI participants.</p>
 </section>
 <section id="quality-control-checks" class="level1">
@@ -352,11 +341,11 @@ AIREADI-1029 AIREADI-1042 AIREADI-1046 AIREADI-1054 AIREADI-1055
 <pre><code>[1] 6</code></pre>
 </div>
 </div>
-<p>I checked the dataset for missing timestamps and missing glucose measurements before continuing the analysis. Six glucose values could not be converted to numeric values and were treated as missing during quality control.</p>
+<p>Zero missing timestamps. Six glucose values that couldn’t be converted to numbers, treated as missing.</p>
 </section>
 <section id="duplicate-timestamps" class="level2">
 <h2 class="anchored" data-anchor-id="duplicate-timestamps">Duplicate timestamps</h2>
-<p>A duplicate was defined as having the same participant ID and UTC timestamp. Duplicate records were checked before creating summary features.</p>
+<p>A duplicate = same participant ID + same UTC timestamp. Groups by participant + timestamp, counts rows per group, keeps only groups with more than one, with none found here.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>duplicate_check <span class="ot">&lt;-</span> cgm_all <span class="sc">%&gt;%</span></span>
 <span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(person_id,time_utc) <span class="sc">%&gt;%</span></span>
@@ -366,12 +355,14 @@ AIREADI-1029 AIREADI-1042 AIREADI-1046 AIREADI-1054 AIREADI-1055
 <span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
 <span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(n<span class="sc">&gt;</span><span class="dv">1</span>)</span>
 <span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>duplicate_check</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>duplicate_check</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 0 × 3
 # ℹ 3 variables: person_id &lt;chr&gt;, time_utc &lt;dttm&gt;, n &lt;int&gt;</code></pre>
 </div>
+</div>
+<p>General-purpose duplicate handler, built in case duplicates existed: keeps a row if it’s not duplicated, or if all its duplicate copies agree on glucose value (<code>n_distinct(glucose)==1</code>); disagreeing duplicates get dropped; agreeing duplicates get collapsed to one copy via <code>slice(1)</code>. No effect here since no duplicates were found.</p>
+<div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>cgm_final <span class="ot">&lt;-</span> cgm_all <span class="sc">%&gt;%</span></span>
 <span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(person_id,time_utc) <span class="sc">%&gt;%</span></span>
 <span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
@@ -394,24 +385,26 @@ AIREADI-1029 AIREADI-1042 AIREADI-1046 AIREADI-1054 AIREADI-1055
 <pre><code>[1] "mg/dL"</code></pre>
 </div>
 </div>
-<p>All glucose measurements were checked to confirm they were recorded in mg/dL.</p>
+<p>Only “mg/dL” appears.</p>
 </section>
 <section id="unusual-glucose-values" class="level2">
 <h2 class="anchored" data-anchor-id="unusual-glucose-values">Unusual glucose values</h2>
-<p>Glucose values below 40 mg/dL or above 400 mg/dL were flagged as unusual and removed from summary calculations.</p>
+<p>Glucose below 40 or above 400 mg/dL is treated as an implausible/erroneous reading for this exercise (a data-processing rule, not a clinical threshold).</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>cgm_all <span class="ot">&lt;-</span> cgm_all <span class="sc">%&gt;%</span></span>
 <span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
 <span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">unusual_glucose =</span> glucose <span class="sc">&lt;</span> <span class="dv">40</span> <span class="sc">|</span> glucose <span class="sc">&gt;</span> <span class="dv">400</span></span>
 <span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>  )</span>
 <span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a><span class="fu">table</span>(cgm_all<span class="sc">$</span>unusual_glucose)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a><span class="fu">table</span>(cgm_all<span class="sc">$</span>unusual_glucose)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>
 FALSE 
 14229 </code></pre>
 </div>
+</div>
+<p>None flagged as unusual here. This next step drops unusual (and, as a side effect, missing) glucose rows so <code>cgm_final</code> is now the clean, one-reading-per-row dataset.</p>
+<div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>cgm_final <span class="ot">&lt;-</span> cgm_all <span class="sc">%&gt;%</span></span>
 <span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span>unusual_glucose)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
@@ -419,8 +412,7 @@ FALSE
 </section>
 <section id="determine-valid-cgm-days" class="level1">
 <h1>5. Determine Valid CGM Days</h1>
-<p>A valid CGM day was defined as having at least 202 readings, which represents 70% of the expected 288 five-minute readings in one day.</p>
-<p>Only valid CGM days were used for feature calculations.</p>
+<p>A CGM day is only trustworthy if the sensor captured enough of it. A “valid day” needs at least 202 of the expected 288 five-minute readings (~70% coverage), which is the same completeness standard used in clinical CGM interpretation.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>daily_qc <span class="ot">&lt;-</span> cgm_final <span class="sc">%&gt;%</span></span>
 <span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(person_id,date_local) <span class="sc">%&gt;%</span></span>
@@ -431,8 +423,7 @@ FALSE
 <span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups=</span><span class="st">"drop"</span></span>
 <span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a>  )</span>
 <span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb30-11"><a href="#cb30-11" aria-hidden="true" tabindex="-1"></a>daily_qc</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a>daily_qc</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 55 × 5
    person_id    date_local n_readings percent_complete valid_day
@@ -450,19 +441,18 @@ FALSE
 # ℹ 45 more rows</code></pre>
 </div>
 </div>
+<p><code>inner_join()</code> keeps only readings whose (participant, date) also appears in <code>valid_dates</code>. Readings from invalid days are automatically dropped. This enforces “only valid-day data from here forward.”</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>valid_dates <span class="ot">&lt;-</span> daily_qc <span class="sc">%&gt;%</span></span>
 <span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(valid_day)</span>
 <span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>cgm_valid <span class="ot">&lt;-</span> cgm_final <span class="sc">%&gt;%</span></span>
-<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">inner_join</span>(</span>
-<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a>    valid_dates,</span>
-<span id="cb32-8"><a href="#cb32-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">by=</span><span class="fu">c</span>(<span class="st">"person_id"</span>,<span class="st">"date_local"</span>)</span>
-<span id="cb32-9"><a href="#cb32-9" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb32-10"><a href="#cb32-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-11"><a href="#cb32-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-12"><a href="#cb32-12" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(cgm_valid)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>cgm_valid <span class="ot">&lt;-</span> cgm_final <span class="sc">%&gt;%</span></span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">inner_join</span>(</span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a>    valid_dates,</span>
+<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">by=</span><span class="fu">c</span>(<span class="st">"person_id"</span>,<span class="st">"date_local"</span>)</span>
+<span id="cb32-8"><a href="#cb32-8" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb32-9"><a href="#cb32-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-10"><a href="#cb32-10" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(cgm_valid)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>     person_id event_type            time_utc timezone_abbreviation glucose
 1 AIREADI-1029        EGV 2023-09-08 00:03:07                   pst     107
@@ -492,7 +482,7 @@ FALSE
 <h1>6. Create Summary Tables</h1>
 <section id="table-1-cgm-quality-control-summary" class="level2">
 <h2 class="anchored" data-anchor-id="table-1-cgm-quality-control-summary">Table 1: CGM Quality Control Summary</h2>
-<p>This table summarizes the quality-control steps performed before feature extraction.</p>
+<p>Shows how much data existed, and how much survived cleaning, per participant. This describes data quality only and it says nothing about whether someone’s glucose control was good or bad. <code>left_join()</code> attaches each participant’s valid-day count (calculated separately from <code>daily_qc</code>) onto the QC summary, keeping every row from the summary table.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>qc_summary <span class="ot">&lt;-</span> cgm_all <span class="sc">%&gt;%</span></span>
 <span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(person_id) <span class="sc">%&gt;%</span></span>
@@ -515,13 +505,11 @@ FALSE
 <span id="cb34-19"><a href="#cb34-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">by=</span><span class="st">"person_id"</span></span>
 <span id="cb34-20"><a href="#cb34-20" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<p>This table summarizes the quality-control steps performed before calculating CGM features.</p>
-<p>The table shows how many readings were available before and after filtering. These results only describe data quality and do not prove that the CGM measurements are clinically accurate.</p>
 <hr>
 </section>
 <section id="table-2-participant-level-cgm-features" class="level2">
 <h2 class="anchored" data-anchor-id="table-2-participant-level-cgm-features">Table 2: Participant-Level CGM Features</h2>
-<p>Participant-level summaries were calculated using only cleaned readings from valid local days.</p>
+<p>One row per participant, summarizing their overall glucose pattern across all valid days. <code>cv</code> (coefficient of variation) expresses glucose variability as a percentage of the mean, so variability can be compared across people regardless of average glucose level. Each <code>pct_*</code> line takes the average of a TRUE/FALSE condition (proportion of readings meeting it), converted to a percentage since CGM readings occur ~every 5 minutes, % of readings approximates % of time. 70–180 mg/dL is the standard target range; above-250 counts are also included in above-180; below-54 counts are also included in below-70 intentional overlap.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>participant_summary <span class="ot">&lt;-</span> cgm_valid <span class="sc">%&gt;%</span></span>
 <span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(person_id) <span class="sc">%&gt;%</span></span>
@@ -551,8 +539,7 @@ FALSE
 <span id="cb35-26"><a href="#cb35-26" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb35-27"><a href="#cb35-27" aria-hidden="true" tabindex="-1"></a>  )</span>
 <span id="cb35-28"><a href="#cb35-28" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-29"><a href="#cb35-29" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-30"><a href="#cb35-30" aria-hidden="true" tabindex="-1"></a>participant_summary</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb35-29"><a href="#cb35-29" aria-hidden="true" tabindex="-1"></a>participant_summary</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 5 × 12
   person_id   cleaned_readings valid_days mean_glucose median_glucose sd_glucose
@@ -566,13 +553,12 @@ FALSE
 #   pct_above_250 &lt;dbl&gt;, pct_below_70 &lt;dbl&gt;, pct_below_54 &lt;dbl&gt;</code></pre>
 </div>
 </div>
-<p>This table summarizes overall glucose patterns for each participant using only valid CGM days.</p>
-<p>The features describe glucose levels and variability but do not explain why glucose changed.</p>
+<p>This table summarizes overall glucose patterns per participant. It describes levels and variability, not causes.</p>
 <hr>
 </section>
 <section id="table-3-participant-day-cgm-features" class="level2">
 <h2 class="anchored" data-anchor-id="table-3-participant-day-cgm-features">Table 3: Participant-Day CGM Features</h2>
-<p>Each row represents one participant and one valid local calendar day.</p>
+<p>One row per participant, per valid local day. The same features as Table 2, but broken down day by day, plus a daytime/nighttime split. <code>glucose[hour_local &gt;= 6]</code> subsets glucose values to daytime hours (6:00 AM–11:59 PM) before averaging; the mirrored condition (<code>&lt; 6</code>) covers nighttime (12:00 AM–5:59 AM). This is a clock-time split, not actual sleep/wake timing. It’ll be replaced once Garmin sleep data is available.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>participant_day_summary <span class="ot">&lt;-</span> cgm_valid <span class="sc">%&gt;%</span></span>
 <span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(person_id,date_local) <span class="sc">%&gt;%</span></span>
@@ -608,8 +594,7 @@ FALSE
 <span id="cb37-32"><a href="#cb37-32" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb37-33"><a href="#cb37-33" aria-hidden="true" tabindex="-1"></a>  )</span>
 <span id="cb37-34"><a href="#cb37-34" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb37-35"><a href="#cb37-35" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb37-36"><a href="#cb37-36" aria-hidden="true" tabindex="-1"></a>participant_day_summary</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb37-35"><a href="#cb37-35" aria-hidden="true" tabindex="-1"></a>participant_day_summary</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 49 × 15
    person_id    date_local cleaned_readings percent_complete mean_glucose
@@ -631,8 +616,7 @@ FALSE
 #   nighttime_sd &lt;dbl&gt;</code></pre>
 </div>
 </div>
-<p>These features will allow future analysis of relationships between glucose patterns, sleep, and activity.</p>
-<p>Daytime and nighttime periods were defined using clock time rather than actual sleep measurements.</p>
+<p>This table is what will eventually be joined to sleep/activity data, day by day.</p>
 <hr>
 </section>
 </section>
@@ -640,42 +624,40 @@ FALSE
 <h1>7. Figures</h1>
 <section id="figure-1-full-cgm-trace" class="level2">
 <h2 class="anchored" data-anchor-id="figure-1-full-cgm-trace">Figure 1: Full CGM Trace</h2>
-<p>The first participant with valid CGM data was selected to show the full glucose pattern over the monitoring period.</p>
+<p>One participant’s entire glucose trace across their monitoring period. Participant selected: the first one with valid data (a simple, disclosed rule).</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>example_participant <span class="ot">&lt;-</span> <span class="fu">unique</span>(cgm_valid<span class="sc">$</span>person_id)[<span class="dv">1</span>]</span>
 <span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>full_trace <span class="ot">&lt;-</span> cgm_valid <span class="sc">%&gt;%</span></span>
-<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(person_id <span class="sc">==</span> example_participant)</span>
-<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb39-7"><a href="#cb39-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb39-8"><a href="#cb39-8" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(</span>
-<span id="cb39-9"><a href="#cb39-9" aria-hidden="true" tabindex="-1"></a>  full_trace,</span>
-<span id="cb39-10"><a href="#cb39-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x=</span>time_local,<span class="at">y=</span>glucose)</span>
-<span id="cb39-11"><a href="#cb39-11" aria-hidden="true" tabindex="-1"></a>) <span class="sc">+</span></span>
-<span id="cb39-12"><a href="#cb39-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>() <span class="sc">+</span></span>
-<span id="cb39-13"><a href="#cb39-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
-<span id="cb39-14"><a href="#cb39-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">title=</span><span class="fu">paste</span>(</span>
-<span id="cb39-15"><a href="#cb39-15" aria-hidden="true" tabindex="-1"></a>      <span class="st">"Full CGM Trace:"</span>,</span>
-<span id="cb39-16"><a href="#cb39-16" aria-hidden="true" tabindex="-1"></a>      example_participant</span>
-<span id="cb39-17"><a href="#cb39-17" aria-hidden="true" tabindex="-1"></a>    ),</span>
-<span id="cb39-18"><a href="#cb39-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">x=</span><span class="st">"Local Time"</span>,</span>
-<span id="cb39-19"><a href="#cb39-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">y=</span><span class="st">"Glucose (mg/dL)"</span></span>
-<span id="cb39-20"><a href="#cb39-20" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>full_trace <span class="ot">&lt;-</span> cgm_valid <span class="sc">%&gt;%</span></span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(person_id <span class="sc">==</span> example_participant)</span>
+<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(</span>
+<span id="cb39-7"><a href="#cb39-7" aria-hidden="true" tabindex="-1"></a>  full_trace,</span>
+<span id="cb39-8"><a href="#cb39-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x=</span>time_local,<span class="at">y=</span>glucose)</span>
+<span id="cb39-9"><a href="#cb39-9" aria-hidden="true" tabindex="-1"></a>) <span class="sc">+</span></span>
+<span id="cb39-10"><a href="#cb39-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>() <span class="sc">+</span></span>
+<span id="cb39-11"><a href="#cb39-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb39-12"><a href="#cb39-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">title=</span><span class="fu">paste</span>(</span>
+<span id="cb39-13"><a href="#cb39-13" aria-hidden="true" tabindex="-1"></a>      <span class="st">"Full CGM Trace:"</span>,</span>
+<span id="cb39-14"><a href="#cb39-14" aria-hidden="true" tabindex="-1"></a>      example_participant</span>
+<span id="cb39-15"><a href="#cb39-15" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb39-16"><a href="#cb39-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">x=</span><span class="st">"Local Time"</span>,</span>
+<span id="cb39-17"><a href="#cb39-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">y=</span><span class="st">"Glucose (mg/dL)"</span></span>
+<span id="cb39-18"><a href="#cb39-18" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="02_cgm_qc_features_files/figure-html/unnamed-chunk-14-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="02_cgm_qc_features_files/figure-html/unnamed-chunk-16-1.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
 </div>
-<p>This figure shows changes in glucose over time. It does not explain the reasons for those changes because information such as meals, exercise, medications, and sleep are not included.</p>
+<p>Shows glucose rising and falling over time, it doesn’t explain why since meals, exercise, medication, and sleep aren’t included.</p>
 <hr>
 </section>
 <section id="figure-2-example-valid-local-day-traces" class="level2">
 <h2 class="anchored" data-anchor-id="figure-2-example-valid-local-day-traces">Figure 2: Example Valid Local-Day Traces</h2>
-<p>Two valid participant-days were selected to show daily differences in CGM patterns.</p>
+<p>Two valid days overlaid on one chart to show day-to-day variability. <code>slice(1:2)</code> picks the first two valid days found (disclosed selection rule). <code>semi_join()</code> filters <code>cgm_valid</code> down to just those two days’ readings, without attaching extra columns.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>example_days <span class="ot">&lt;-</span> cgm_valid <span class="sc">%&gt;%</span></span>
 <span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(person_id,date_local) <span class="sc">%&gt;%</span></span>
@@ -686,107 +668,105 @@ FALSE
 <span id="cb40-7"><a href="#cb40-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(readings<span class="sc">&gt;=</span><span class="dv">202</span>) <span class="sc">%&gt;%</span></span>
 <span id="cb40-8"><a href="#cb40-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>)</span>
 <span id="cb40-9"><a href="#cb40-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb40-10"><a href="#cb40-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb40-11"><a href="#cb40-11" aria-hidden="true" tabindex="-1"></a>two_days <span class="ot">&lt;-</span> cgm_valid <span class="sc">%&gt;%</span></span>
-<span id="cb40-12"><a href="#cb40-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">semi_join</span>(</span>
-<span id="cb40-13"><a href="#cb40-13" aria-hidden="true" tabindex="-1"></a>    example_days,</span>
-<span id="cb40-14"><a href="#cb40-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">by=</span><span class="fu">c</span>(<span class="st">"person_id"</span>,<span class="st">"date_local"</span>)</span>
-<span id="cb40-15"><a href="#cb40-15" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb40-16"><a href="#cb40-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb40-17"><a href="#cb40-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb40-18"><a href="#cb40-18" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(</span>
-<span id="cb40-19"><a href="#cb40-19" aria-hidden="true" tabindex="-1"></a>  two_days,</span>
-<span id="cb40-20"><a href="#cb40-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(</span>
-<span id="cb40-21"><a href="#cb40-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">x=</span>time_local,</span>
-<span id="cb40-22"><a href="#cb40-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">y=</span>glucose,</span>
-<span id="cb40-23"><a href="#cb40-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">color=</span><span class="fu">factor</span>(date_local)</span>
-<span id="cb40-24"><a href="#cb40-24" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb40-25"><a href="#cb40-25" aria-hidden="true" tabindex="-1"></a>) <span class="sc">+</span></span>
-<span id="cb40-26"><a href="#cb40-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>() <span class="sc">+</span></span>
-<span id="cb40-27"><a href="#cb40-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
-<span id="cb40-28"><a href="#cb40-28" aria-hidden="true" tabindex="-1"></a>    <span class="at">title=</span><span class="st">"CGM Traces for Two Valid Participant-Days"</span>,</span>
-<span id="cb40-29"><a href="#cb40-29" aria-hidden="true" tabindex="-1"></a>    <span class="at">x=</span><span class="st">"Local Time"</span>,</span>
-<span id="cb40-30"><a href="#cb40-30" aria-hidden="true" tabindex="-1"></a>    <span class="at">y=</span><span class="st">"Glucose (mg/dL)"</span></span>
-<span id="cb40-31"><a href="#cb40-31" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb40-10"><a href="#cb40-10" aria-hidden="true" tabindex="-1"></a>two_days <span class="ot">&lt;-</span> cgm_valid <span class="sc">%&gt;%</span></span>
+<span id="cb40-11"><a href="#cb40-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">semi_join</span>(</span>
+<span id="cb40-12"><a href="#cb40-12" aria-hidden="true" tabindex="-1"></a>    example_days,</span>
+<span id="cb40-13"><a href="#cb40-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">by=</span><span class="fu">c</span>(<span class="st">"person_id"</span>,<span class="st">"date_local"</span>)</span>
+<span id="cb40-14"><a href="#cb40-14" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb40-15"><a href="#cb40-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-16"><a href="#cb40-16" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(</span>
+<span id="cb40-17"><a href="#cb40-17" aria-hidden="true" tabindex="-1"></a>  two_days,</span>
+<span id="cb40-18"><a href="#cb40-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(</span>
+<span id="cb40-19"><a href="#cb40-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">x=</span>time_local,</span>
+<span id="cb40-20"><a href="#cb40-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">y=</span>glucose,</span>
+<span id="cb40-21"><a href="#cb40-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">color=</span><span class="fu">factor</span>(date_local)</span>
+<span id="cb40-22"><a href="#cb40-22" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb40-23"><a href="#cb40-23" aria-hidden="true" tabindex="-1"></a>) <span class="sc">+</span></span>
+<span id="cb40-24"><a href="#cb40-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>() <span class="sc">+</span></span>
+<span id="cb40-25"><a href="#cb40-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb40-26"><a href="#cb40-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">title=</span><span class="st">"CGM Traces for Two Valid Participant-Days"</span>,</span>
+<span id="cb40-27"><a href="#cb40-27" aria-hidden="true" tabindex="-1"></a>    <span class="at">x=</span><span class="st">"Local Time"</span>,</span>
+<span id="cb40-28"><a href="#cb40-28" aria-hidden="true" tabindex="-1"></a>    <span class="at">y=</span><span class="st">"Glucose (mg/dL)"</span></span>
+<span id="cb40-29"><a href="#cb40-29" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="02_cgm_qc_features_files/figure-html/unnamed-chunk-15-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="02_cgm_qc_features_files/figure-html/unnamed-chunk-17-1.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
 </div>
-<p>This figure demonstrates that glucose patterns can change from day to day. More information is needed to determine why these differences occur.</p>
+<p><code>color=factor(date_local)</code> colors each day separately so the two traces are visually distinguishable. Shows that glucose patterns can differ day to day and doesn’t explain why.</p>
 <hr>
 </section>
 <section id="figure-3-agp-style-plot" class="level2">
 <h2 class="anchored" data-anchor-id="figure-3-agp-style-plot">Figure 3: AGP-Style Plot</h2>
-<p>This AGP-style figure summarizes glucose patterns across valid CGM days for one participant.</p>
+<p>AGP = Ambulatory Glucose Profile, a standard CGM visualization that overlays all valid days by time-of-day (not calendar date) to show a “typical day” pattern. <code>time_of_day</code> = minutes since midnight, letting readings from different days at the same clock time be grouped together. For each time-of-day, calculates the median glucose plus the 25th–75th percentile spread across days.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>agp_participant <span class="ot">&lt;-</span> <span class="fu">unique</span>(cgm_valid<span class="sc">$</span>person_id)[<span class="dv">1</span>]</span>
 <span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>agp <span class="ot">&lt;-</span> cgm_valid <span class="sc">%&gt;%</span></span>
-<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(person_id <span class="sc">==</span> agp_participant) <span class="sc">%&gt;%</span></span>
-<span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb41-7"><a href="#cb41-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">time_of_day =</span> hour_local<span class="sc">*</span><span class="dv">60</span> <span class="sc">+</span> <span class="fu">minute</span>(time_local)</span>
-<span id="cb41-8"><a href="#cb41-8" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
-<span id="cb41-9"><a href="#cb41-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(time_of_day) <span class="sc">%&gt;%</span></span>
-<span id="cb41-10"><a href="#cb41-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
-<span id="cb41-11"><a href="#cb41-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-12"><a href="#cb41-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">median_glucose =</span> <span class="fu">median</span>(glucose),</span>
-<span id="cb41-13"><a href="#cb41-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-14"><a href="#cb41-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">lower =</span> <span class="fu">quantile</span>(glucose,<span class="fl">0.25</span>),</span>
-<span id="cb41-15"><a href="#cb41-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-16"><a href="#cb41-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">upper =</span> <span class="fu">quantile</span>(glucose,<span class="fl">0.75</span>),</span>
-<span id="cb41-17"><a href="#cb41-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-18"><a href="#cb41-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups=</span><span class="st">"drop"</span></span>
-<span id="cb41-19"><a href="#cb41-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-20"><a href="#cb41-20" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb41-21"><a href="#cb41-21" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-22"><a href="#cb41-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-23"><a href="#cb41-23" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(</span>
-<span id="cb41-24"><a href="#cb41-24" aria-hidden="true" tabindex="-1"></a>  agp,</span>
-<span id="cb41-25"><a href="#cb41-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x=</span>time_of_day)</span>
-<span id="cb41-26"><a href="#cb41-26" aria-hidden="true" tabindex="-1"></a>) <span class="sc">+</span></span>
-<span id="cb41-27"><a href="#cb41-27" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-28"><a href="#cb41-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_ribbon</span>(</span>
-<span id="cb41-29"><a href="#cb41-29" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(</span>
-<span id="cb41-30"><a href="#cb41-30" aria-hidden="true" tabindex="-1"></a>      <span class="at">ymin=</span>lower,</span>
-<span id="cb41-31"><a href="#cb41-31" aria-hidden="true" tabindex="-1"></a>      <span class="at">ymax=</span>upper</span>
-<span id="cb41-32"><a href="#cb41-32" aria-hidden="true" tabindex="-1"></a>    ),</span>
-<span id="cb41-33"><a href="#cb41-33" aria-hidden="true" tabindex="-1"></a>    <span class="at">alpha=</span><span class="fl">0.3</span></span>
-<span id="cb41-34"><a href="#cb41-34" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb41-35"><a href="#cb41-35" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-36"><a href="#cb41-36" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(</span>
-<span id="cb41-37"><a href="#cb41-37" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">y=</span>median_glucose)</span>
-<span id="cb41-38"><a href="#cb41-38" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb41-39"><a href="#cb41-39" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-40"><a href="#cb41-40" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(</span>
-<span id="cb41-41"><a href="#cb41-41" aria-hidden="true" tabindex="-1"></a>    <span class="at">yintercept=</span><span class="dv">70</span></span>
-<span id="cb41-42"><a href="#cb41-42" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb41-43"><a href="#cb41-43" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-44"><a href="#cb41-44" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(</span>
-<span id="cb41-45"><a href="#cb41-45" aria-hidden="true" tabindex="-1"></a>    <span class="at">yintercept=</span><span class="dv">180</span></span>
-<span id="cb41-46"><a href="#cb41-46" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb41-47"><a href="#cb41-47" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-48"><a href="#cb41-48" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
-<span id="cb41-49"><a href="#cb41-49" aria-hidden="true" tabindex="-1"></a>    <span class="at">title=</span><span class="fu">paste</span>(</span>
-<span id="cb41-50"><a href="#cb41-50" aria-hidden="true" tabindex="-1"></a>      <span class="st">"AGP-Style CGM Profile:"</span>,</span>
-<span id="cb41-51"><a href="#cb41-51" aria-hidden="true" tabindex="-1"></a>      agp_participant</span>
-<span id="cb41-52"><a href="#cb41-52" aria-hidden="true" tabindex="-1"></a>    ),</span>
-<span id="cb41-53"><a href="#cb41-53" aria-hidden="true" tabindex="-1"></a>    <span class="at">x=</span><span class="st">"Minutes After Midnight"</span>,</span>
-<span id="cb41-54"><a href="#cb41-54" aria-hidden="true" tabindex="-1"></a>    <span class="at">y=</span><span class="st">"Glucose (mg/dL)"</span></span>
-<span id="cb41-55"><a href="#cb41-55" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a>agp <span class="ot">&lt;-</span> cgm_valid <span class="sc">%&gt;%</span></span>
+<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(person_id <span class="sc">==</span> agp_participant) <span class="sc">%&gt;%</span></span>
+<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">time_of_day =</span> hour_local<span class="sc">*</span><span class="dv">60</span> <span class="sc">+</span> <span class="fu">minute</span>(time_local)</span>
+<span id="cb41-7"><a href="#cb41-7" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
+<span id="cb41-8"><a href="#cb41-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(time_of_day) <span class="sc">%&gt;%</span></span>
+<span id="cb41-9"><a href="#cb41-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb41-10"><a href="#cb41-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-11"><a href="#cb41-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">median_glucose =</span> <span class="fu">median</span>(glucose),</span>
+<span id="cb41-12"><a href="#cb41-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-13"><a href="#cb41-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">lower =</span> <span class="fu">quantile</span>(glucose,<span class="fl">0.25</span>),</span>
+<span id="cb41-14"><a href="#cb41-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-15"><a href="#cb41-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">upper =</span> <span class="fu">quantile</span>(glucose,<span class="fl">0.75</span>),</span>
+<span id="cb41-16"><a href="#cb41-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-17"><a href="#cb41-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups=</span><span class="st">"drop"</span></span>
+<span id="cb41-18"><a href="#cb41-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-19"><a href="#cb41-19" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>Ribbon = day-to-day spread (25th–75th percentile); line = median daily pattern; horizontal lines at 70/180 mg/dL = target range boundaries.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(</span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>  agp,</span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x=</span>time_of_day)</span>
+<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>) <span class="sc">+</span></span>
+<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_ribbon</span>(</span>
+<span id="cb42-7"><a href="#cb42-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(</span>
+<span id="cb42-8"><a href="#cb42-8" aria-hidden="true" tabindex="-1"></a>      <span class="at">ymin=</span>lower,</span>
+<span id="cb42-9"><a href="#cb42-9" aria-hidden="true" tabindex="-1"></a>      <span class="at">ymax=</span>upper</span>
+<span id="cb42-10"><a href="#cb42-10" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb42-11"><a href="#cb42-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">alpha=</span><span class="fl">0.3</span></span>
+<span id="cb42-12"><a href="#cb42-12" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb42-13"><a href="#cb42-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-14"><a href="#cb42-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(</span>
+<span id="cb42-15"><a href="#cb42-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">y=</span>median_glucose)</span>
+<span id="cb42-16"><a href="#cb42-16" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb42-17"><a href="#cb42-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-18"><a href="#cb42-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(</span>
+<span id="cb42-19"><a href="#cb42-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">yintercept=</span><span class="dv">70</span></span>
+<span id="cb42-20"><a href="#cb42-20" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb42-21"><a href="#cb42-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-22"><a href="#cb42-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(</span>
+<span id="cb42-23"><a href="#cb42-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">yintercept=</span><span class="dv">180</span></span>
+<span id="cb42-24"><a href="#cb42-24" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb42-25"><a href="#cb42-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-26"><a href="#cb42-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb42-27"><a href="#cb42-27" aria-hidden="true" tabindex="-1"></a>    <span class="at">title=</span><span class="fu">paste</span>(</span>
+<span id="cb42-28"><a href="#cb42-28" aria-hidden="true" tabindex="-1"></a>      <span class="st">"AGP-Style CGM Profile:"</span>,</span>
+<span id="cb42-29"><a href="#cb42-29" aria-hidden="true" tabindex="-1"></a>      agp_participant</span>
+<span id="cb42-30"><a href="#cb42-30" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb42-31"><a href="#cb42-31" aria-hidden="true" tabindex="-1"></a>    <span class="at">x=</span><span class="st">"Minutes After Midnight"</span>,</span>
+<span id="cb42-32"><a href="#cb42-32" aria-hidden="true" tabindex="-1"></a>    <span class="at">y=</span><span class="st">"Glucose (mg/dL)"</span></span>
+<span id="cb42-33"><a href="#cb42-33" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="02_cgm_qc_features_files/figure-html/unnamed-chunk-16-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="02_cgm_qc_features_files/figure-html/unnamed-chunk-19-1.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
 </div>
-<p>The figure shows the typical glucose pattern and the amount of variation across days. This is an educational AGP-style visualization and should not be interpreted as a clinical AGP because clinical interpretation usually requires 14 days of sufficient CGM data.</p>
+<p>This is an educational AGP-style visualization, not a clinical AGP. Clinical AGP interpretation typically requires 14 days of ≥70%-complete data, and this dataset has up to ~10 days.</p>
 <hr>
 </section>
 </section>
@@ -795,7 +775,7 @@ FALSE
 <section id="which-participants-have-at-least-one-valid-local-day" class="level2">
 <h2 class="anchored" data-anchor-id="which-participants-have-at-least-one-valid-local-day">Which participants have at least one valid local day?</h2>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="fu">unique</span>(cgm_valid<span class="sc">$</span>person_id)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="fu">unique</span>(cgm_valid<span class="sc">$</span>person_id)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] "AIREADI-1029" "AIREADI-1042" "AIREADI-1046" "AIREADI-1054" "AIREADI-1055"</code></pre>
 </div>
@@ -806,7 +786,7 @@ FALSE
 <section id="which-local-dates-are-valid-for-each-participant" class="level2">
 <h2 class="anchored" data-anchor-id="which-local-dates-are-valid-for-each-participant">Which local dates are valid for each participant?</h2>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a>valid_dates</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a>valid_dates</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 49 × 5
    person_id    date_local n_readings percent_complete valid_day
@@ -824,32 +804,31 @@ FALSE
 # ℹ 39 more rows</code></pre>
 </div>
 </div>
-<p>This table shows the participant-date combinations that passed the CGM quality criteria.</p>
+<p>Shows exactly which participant-date combinations passed the coverage threshold, and by omission, where the gaps are.</p>
 <hr>
 </section>
 <section id="which-timestamp-will-be-used-to-align-cgm-with-sleepactivity-intervals" class="level2">
 <h2 class="anchored" data-anchor-id="which-timestamp-will-be-used-to-align-cgm-with-sleepactivity-intervals">Which timestamp will be used to align CGM with sleep/activity intervals?</h2>
-<p>The <code>time_local</code> variable will be used because sleep and activity data are recorded using the participant’s local time.</p>
+<p><code>time_local</code> will be used, since sleep and activity data are also recorded in local time.</p>
 <hr>
 </section>
 <section id="does-the-participant-day-table-have-exactly-one-row-per-person_id-date_local-combination" class="level2">
 <h2 class="anchored" data-anchor-id="does-the-participant-day-table-have-exactly-one-row-per-person_id-date_local-combination">Does the participant-day table have exactly one row per person_id + date_local combination?</h2>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a>participant_day_summary <span class="sc">%&gt;%</span></span>
-<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(person_id,date_local) <span class="sc">%&gt;%</span></span>
-<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(n<span class="sc">&gt;</span><span class="dv">1</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb47"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a>participant_day_summary <span class="sc">%&gt;%</span></span>
+<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(person_id,date_local) <span class="sc">%&gt;%</span></span>
+<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(n<span class="sc">&gt;</span><span class="dv">1</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 0 × 3
 # ℹ 3 variables: person_id &lt;chr&gt;, date_local &lt;date&gt;, n &lt;int&gt;</code></pre>
 </div>
 </div>
-<p>No duplicate participant-day combinations were found. Each row represents one participant and one local calendar day.</p>
+<p>Empty result confirms no duplicate participant-day rows and the table is at the correct grain for merging with other data later.</p>
 <hr>
 </section>
 <section id="is-the-participant-day-table-ready-to-join-with-sleepactivity-data" class="level2">
 <h2 class="anchored" data-anchor-id="is-the-participant-day-table-ready-to-join-with-sleepactivity-data">Is the participant-day table ready to join with sleep/activity data?</h2>
-<p>The participant-day table is ready for future sleep and activity analyses because it contains one row per participant-day with summarized glucose features.</p>
-<p>Future work will apply this workflow to more participants and combine CGM patterns with wearable sleep and activity data.</p>
+<p>Yes—one row per participant-day, no duplicate keys, and glucose features already summarized. Future work will scale this pipeline to more participants and merge in wearable sleep/activity data.</p>
 <hr>
 </section>
 </section>
