@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.38">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Shubho Banerjee">
+<meta name="dcterms.date" content="2026-07-21">
+
+<title>Week 02: CGM QC Features</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="02_cgm_qc_features_files/libs/clipboard/clipboard.min.js"></script>
+<script src="02_cgm_qc_features_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="02_cgm_qc_features_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="02_cgm_qc_features_files/libs/quarto-html/popper.min.js"></script>
+<script src="02_cgm_qc_features_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="02_cgm_qc_features_files/libs/quarto-html/anchor.min.js"></script>
+<link href="02_cgm_qc_features_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="02_cgm_qc_features_files/libs/quarto-html/quarto-syntax-highlighting-15634bcf2e68342d4ad2dfa704d543f6.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="02_cgm_qc_features_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="02_cgm_qc_features_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="02_cgm_qc_features_files/libs/bootstrap/bootstrap-138a6193a3bd40baf1e627da441a4734.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article toc-left">
+<div id="quarto-sidebar-toc-left" class="sidebar toc-left">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
+  <li><a href="#identify-cgm-participants" id="toc-identify-cgm-participants" class="nav-link" data-scroll-target="#identify-cgm-participants">1. Identify CGM Participants</a></li>
+  <li><a href="#create-cgm-cleaning-function" id="toc-create-cgm-cleaning-function" class="nav-link" data-scroll-target="#create-cgm-cleaning-function">2. Create CGM Cleaning Function</a></li>
+  <li><a href="#apply-cleaning-pipeline-to-five-participants" id="toc-apply-cleaning-pipeline-to-five-participants" class="nav-link" data-scroll-target="#apply-cleaning-pipeline-to-five-participants">3. Apply Cleaning Pipeline to Five Participants</a></li>
+  <li><a href="#quality-control-checks" id="toc-quality-control-checks" class="nav-link" data-scroll-target="#quality-control-checks">4. Quality Control Checks</a>
+  <ul class="collapse">
+  <li><a href="#missing-timestamps-and-glucose-values" id="toc-missing-timestamps-and-glucose-values" class="nav-link" data-scroll-target="#missing-timestamps-and-glucose-values">Missing timestamps and glucose values</a></li>
+  <li><a href="#duplicate-timestamps" id="toc-duplicate-timestamps" class="nav-link" data-scroll-target="#duplicate-timestamps">Duplicate timestamps</a></li>
+  <li><a href="#glucose-units" id="toc-glucose-units" class="nav-link" data-scroll-target="#glucose-units">Glucose units</a></li>
+  <li><a href="#unusual-glucose-values" id="toc-unusual-glucose-values" class="nav-link" data-scroll-target="#unusual-glucose-values">Unusual glucose values</a></li>
+  </ul></li>
+  <li><a href="#determine-valid-cgm-days" id="toc-determine-valid-cgm-days" class="nav-link" data-scroll-target="#determine-valid-cgm-days">5. Determine Valid CGM Days</a></li>
+  <li><a href="#create-summary-tables" id="toc-create-summary-tables" class="nav-link" data-scroll-target="#create-summary-tables">6. Create Summary Tables</a>
+  <ul class="collapse">
+  <li><a href="#table-1-cgm-quality-control-summary" id="toc-table-1-cgm-quality-control-summary" class="nav-link" data-scroll-target="#table-1-cgm-quality-control-summary">Table 1: CGM Quality Control Summary</a></li>
+  <li><a href="#table-2-participant-level-cgm-features" id="toc-table-2-participant-level-cgm-features" class="nav-link" data-scroll-target="#table-2-participant-level-cgm-features">Table 2: Participant-Level CGM Features</a></li>
+  <li><a href="#table-3-participant-day-cgm-features" id="toc-table-3-participant-day-cgm-features" class="nav-link" data-scroll-target="#table-3-participant-day-cgm-features">Table 3: Participant-Day CGM Features</a></li>
+  </ul></li>
+  <li><a href="#figures" id="toc-figures" class="nav-link" data-scroll-target="#figures">7. Figures</a>
+  <ul class="collapse">
+  <li><a href="#figure-1-full-cgm-trace" id="toc-figure-1-full-cgm-trace" class="nav-link" data-scroll-target="#figure-1-full-cgm-trace">Figure 1: Full CGM Trace</a></li>
+  <li><a href="#figure-2-example-valid-local-day-traces" id="toc-figure-2-example-valid-local-day-traces" class="nav-link" data-scroll-target="#figure-2-example-valid-local-day-traces">Figure 2: Example Valid Local-Day Traces</a></li>
+  <li><a href="#figure-3-agp-style-plot" id="toc-figure-3-agp-style-plot" class="nav-link" data-scroll-target="#figure-3-agp-style-plot">Figure 3: AGP-Style Plot</a></li>
+  </ul></li>
+  <li><a href="#week-3-preparation" id="toc-week-3-preparation" class="nav-link" data-scroll-target="#week-3-preparation">8. Week 3 Preparation</a>
+  <ul class="collapse">
+  <li><a href="#which-participants-have-at-least-one-valid-local-day" id="toc-which-participants-have-at-least-one-valid-local-day" class="nav-link" data-scroll-target="#which-participants-have-at-least-one-valid-local-day">Which participants have at least one valid local day?</a></li>
+  <li><a href="#which-local-dates-are-valid-for-each-participant" id="toc-which-local-dates-are-valid-for-each-participant" class="nav-link" data-scroll-target="#which-local-dates-are-valid-for-each-participant">Which local dates are valid for each participant?</a></li>
+  <li><a href="#which-timestamp-will-be-used-to-align-cgm-with-sleepactivity-intervals" id="toc-which-timestamp-will-be-used-to-align-cgm-with-sleepactivity-intervals" class="nav-link" data-scroll-target="#which-timestamp-will-be-used-to-align-cgm-with-sleepactivity-intervals">Which timestamp will be used to align CGM with sleep/activity intervals?</a></li>
+  <li><a href="#does-the-participant-day-table-have-exactly-one-row-per-person_id-date_local-combination" id="toc-does-the-participant-day-table-have-exactly-one-row-per-person_id-date_local-combination" class="nav-link" data-scroll-target="#does-the-participant-day-table-have-exactly-one-row-per-person_id-date_local-combination">Does the participant-day table have exactly one row per person_id + date_local combination?</a></li>
+  <li><a href="#is-the-participant-day-table-ready-to-join-with-sleepactivity-data" id="toc-is-the-participant-day-table-ready-to-join-with-sleepactivity-data" class="nav-link" data-scroll-target="#is-the-participant-day-table-ready-to-join-with-sleepactivity-data">Is the participant-day table ready to join with sleep/activity data?</a></li>
+  </ul></li>
+  <li><a href="#week-3-presentation-summary" id="toc-week-3-presentation-summary" class="nav-link" data-scroll-target="#week-3-presentation-summary">Week 3 Presentation Summary</a></li>
+  </ul>
+</nav>
+</div>
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Week 02: CGM QC Features</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Shubho Banerjee </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">July 21, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="introduction" class="level1">
+<h1>Introduction</h1>
+<p>The goal of this notebook is to clean Dexcom G6 continuous glucose monitoring (CGM) data and create summaries at both the participant level and participant-day level. These results will be used later to study how sleep and activity relate to glucose patterns.</p>
+<p>I first tested the workflow using one participant and then applied the final pipeline to five CGM participants from the AI-READI mini dataset.</p>
+<p>For this assignment, I used all valid CGM days available (up to about 10 days). The AGP-style figure shown here is for learning and visualization purposes only. It should not be considered a clinical 14-day AGP report.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(jsonlite)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'dplyr'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:stats':
+
+    filter, lag</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:base':
+
+    intersect, setdiff, setequal, union</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(lubridate)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'lubridate'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:base':
+
+    date, intersect, setdiff, union</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(scales)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="identify-cgm-participants" class="level1">
+<h1>1. Identify CGM Participants</h1>
+<p>The Dexcom files are stored in separate folders for each participant. I identified the available CGM participants and selected five participants to test the workflow.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>dex_path <span class="ot">&lt;-</span> <span class="st">"data/mini/v3-mini/dataset/wearable_blood_glucose/continuous_glucose_monitoring/dexcom_g6"</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>participants <span class="ot">&lt;-</span> <span class="fu">list.dirs</span>(</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>  dex_path,</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">recursive =</span> <span class="cn">FALSE</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>participants_5 <span class="ot">&lt;-</span> participants[<span class="dv">1</span><span class="sc">:</span><span class="dv">5</span>]</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>participants_5</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "data/mini/v3-mini/dataset/wearable_blood_glucose/continuous_glucose_monitoring/dexcom_g6/1029"
+[2] "data/mini/v3-mini/dataset/wearable_blood_glucose/continuous_glucose_monitoring/dexcom_g6/1042"
+[3] "data/mini/v3-mini/dataset/wearable_blood_glucose/continuous_glucose_monitoring/dexcom_g6/1046"
+[4] "data/mini/v3-mini/dataset/wearable_blood_glucose/continuous_glucose_monitoring/dexcom_g6/1054"
+[5] "data/mini/v3-mini/dataset/wearable_blood_glucose/continuous_glucose_monitoring/dexcom_g6/1055"</code></pre>
+</div>
+</div>
+</section>
+<section id="create-cgm-cleaning-function" class="level1">
+<h1>2. Create CGM Cleaning Function</h1>
+<p>Each Dexcom JSON file contains participant information and CGM measurements.</p>
+<p>The cleaning function:</p>
+<ul>
+<li><p>keeps only glucose measurement events (EGV)</p></li>
+<li><p>extracts participant ID, timestamps, glucose values, and units</p></li>
+<li><p>converts timestamps from UTC to local time</p></li>
+<li><p>creates local date and hour variables</p></li>
+</ul>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>clean_cgm_file <span class="ot">&lt;-</span> <span class="cf">function</span>(file_path){</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  dex <span class="ot">&lt;-</span> <span class="fu">fromJSON</span>(</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    file_path,</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">flatten =</span> <span class="cn">TRUE</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Extract Dexcom CGM event table</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>  cgm_egv <span class="ot">&lt;-</span> dex<span class="sc">$</span>body</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">is.list</span>(cgm_egv) <span class="sc">&amp;&amp;</span> <span class="sc">!</span><span class="st">"event_type"</span> <span class="sc">%in%</span> <span class="fu">names</span>(cgm_egv)) {</span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>    cgm_egv <span class="ot">&lt;-</span> <span class="fu">do.call</span>(</span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>      rbind,</span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>      <span class="fu">lapply</span>(cgm_egv, as.data.frame)</span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a>  cgm_egv <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(cgm_egv)</span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a>  cgm_clean <span class="ot">&lt;-</span> cgm_egv <span class="sc">%&gt;%</span></span>
+<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(event_type <span class="sc">==</span> <span class="st">"EGV"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb11-26"><a href="#cb11-26" aria-hidden="true" tabindex="-1"></a>    <span class="fu">transmute</span>(</span>
+<span id="cb11-27"><a href="#cb11-27" aria-hidden="true" tabindex="-1"></a>      <span class="at">person_id =</span> dex<span class="sc">$</span>header<span class="sc">$</span>patient_id,</span>
+<span id="cb11-28"><a href="#cb11-28" aria-hidden="true" tabindex="-1"></a>      event_type,</span>
+<span id="cb11-29"><a href="#cb11-29" aria-hidden="true" tabindex="-1"></a>      <span class="at">time_utc =</span> effective_time_frame.time_interval.start_date_time,</span>
+<span id="cb11-30"><a href="#cb11-30" aria-hidden="true" tabindex="-1"></a>      <span class="at">timezone_abbreviation =</span> dex<span class="sc">$</span>header<span class="sc">$</span>timezone,</span>
+<span id="cb11-31"><a href="#cb11-31" aria-hidden="true" tabindex="-1"></a>      <span class="at">glucose =</span> <span class="fu">as.numeric</span>(blood_glucose.value),</span>
+<span id="cb11-32"><a href="#cb11-32" aria-hidden="true" tabindex="-1"></a>      <span class="at">glucose_unit =</span> blood_glucose.unit</span>
+<span id="cb11-33"><a href="#cb11-33" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb11-34"><a href="#cb11-34" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb11-35"><a href="#cb11-35" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb11-36"><a href="#cb11-36" aria-hidden="true" tabindex="-1"></a>  tz_choice <span class="ot">&lt;-</span> <span class="fu">case_when</span>(</span>
+<span id="cb11-37"><a href="#cb11-37" aria-hidden="true" tabindex="-1"></a>    cgm_clean<span class="sc">$</span>timezone_abbreviation[<span class="dv">1</span>] <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"pst"</span>,<span class="st">"pdt"</span>) <span class="sc">~</span> <span class="st">"America/Los_Angeles"</span>,</span>
+<span id="cb11-38"><a href="#cb11-38" aria-hidden="true" tabindex="-1"></a>    cgm_clean<span class="sc">$</span>timezone_abbreviation[<span class="dv">1</span>] <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"mst"</span>,<span class="st">"mdt"</span>) <span class="sc">~</span> <span class="st">"America/Denver"</span>,</span>
+<span id="cb11-39"><a href="#cb11-39" aria-hidden="true" tabindex="-1"></a>    cgm_clean<span class="sc">$</span>timezone_abbreviation[<span class="dv">1</span>] <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"cst"</span>,<span class="st">"cdt"</span>) <span class="sc">~</span> <span class="st">"America/Chicago"</span>,</span>
+<span id="cb11-40"><a href="#cb11-40" aria-hidden="true" tabindex="-1"></a>    cgm_clean<span class="sc">$</span>timezone_abbreviation[<span class="dv">1</span>] <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"est"</span>,<span class="st">"edt"</span>) <span class="sc">~</span> <span class="st">"America/New_York"</span>,</span>
+<span id="cb11-41"><a href="#cb11-41" aria-hidden="true" tabindex="-1"></a>    <span class="cn">TRUE</span> <span class="sc">~</span> <span class="st">"UTC"</span></span>
+<span id="cb11-42"><a href="#cb11-42" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb11-43"><a href="#cb11-43" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb11-44"><a href="#cb11-44" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb11-45"><a href="#cb11-45" aria-hidden="true" tabindex="-1"></a>  cgm_clean <span class="sc">%&gt;%</span></span>
+<span id="cb11-46"><a href="#cb11-46" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(</span>
+<span id="cb11-47"><a href="#cb11-47" aria-hidden="true" tabindex="-1"></a>      <span class="at">time_utc =</span> <span class="fu">ymd_hms</span>(time_utc, <span class="at">tz=</span><span class="st">"UTC"</span>),</span>
+<span id="cb11-48"><a href="#cb11-48" aria-hidden="true" tabindex="-1"></a>      <span class="at">time_local =</span> <span class="fu">with_tz</span>(time_utc, tz_choice),</span>
+<span id="cb11-49"><a href="#cb11-49" aria-hidden="true" tabindex="-1"></a>      <span class="at">date_local =</span> <span class="fu">as.Date</span>(time_local),</span>
+<span id="cb11-50"><a href="#cb11-50" aria-hidden="true" tabindex="-1"></a>      <span class="at">hour_local =</span> <span class="fu">hour</span>(time_local),</span>
+<span id="cb11-51"><a href="#cb11-51" aria-hidden="true" tabindex="-1"></a>      <span class="at">is_dst =</span> <span class="fu">dst</span>(time_local)</span>
+<span id="cb11-52"><a href="#cb11-52" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb11-53"><a href="#cb11-53" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb11-54"><a href="#cb11-54" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="apply-cleaning-pipeline-to-five-participants" class="level1">
+<h1>3. Apply Cleaning Pipeline to Five Participants</h1>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>cgm_all <span class="ot">&lt;-</span> <span class="fu">lapply</span>(</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  participants_5,</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  <span class="cf">function</span>(folder){</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    json_file <span class="ot">&lt;-</span> <span class="fu">list.files</span>(</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>      folder,</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>      <span class="at">pattern =</span> <span class="st">"</span><span class="sc">\\</span><span class="st">.json$"</span>,</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>      <span class="at">full.names =</span> <span class="cn">TRUE</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">clean_cgm_file</span>(json_file[<span class="dv">1</span>])</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: There was 1 warning in `transmute()`.
+ℹ In argument: `glucose = as.numeric(blood_glucose.value)`.
+Caused by warning:
+! NAs introduced by coercion</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>cgm_all <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(cgm_all)</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(cgm_all)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>             person_id event_type            time_utc timezone_abbreviation
+cgm.1...1 AIREADI-1029        EGV 2023-09-07 21:08:07                   pst
+cgm.2...2 AIREADI-1029        EGV 2023-09-07 21:13:07                   pst
+cgm.3...3 AIREADI-1029        EGV 2023-09-07 21:18:07                   pst
+cgm.4...4 AIREADI-1029        EGV 2023-09-07 21:23:07                   pst
+cgm.5...5 AIREADI-1029        EGV 2023-09-07 21:28:07                   pst
+cgm.6...6 AIREADI-1029        EGV 2023-09-07 21:33:07                   pst
+          glucose glucose_unit          time_local date_local hour_local is_dst
+cgm.1...1     139        mg/dL 2023-09-07 14:08:07 2023-09-07         14   TRUE
+cgm.2...2     138        mg/dL 2023-09-07 14:13:07 2023-09-07         14   TRUE
+cgm.3...3     136        mg/dL 2023-09-07 14:18:07 2023-09-07         14   TRUE
+cgm.4...4     133        mg/dL 2023-09-07 14:23:07 2023-09-07         14   TRUE
+cgm.5...5     125        mg/dL 2023-09-07 14:28:07 2023-09-07         14   TRUE
+cgm.6...6     127        mg/dL 2023-09-07 14:33:07 2023-09-07         14   TRUE</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">table</span>(cgm_all<span class="sc">$</span>person_id)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+AIREADI-1029 AIREADI-1042 AIREADI-1046 AIREADI-1054 AIREADI-1055 
+        2856         2845         2856         2835         2843 </code></pre>
+</div>
+</div>
+<p>The cleaned dataset contains CGM readings from five AI-READI participants.</p>
+</section>
+<section id="quality-control-checks" class="level1">
+<h1>4. Quality Control Checks</h1>
+<section id="missing-timestamps-and-glucose-values" class="level2">
+<h2 class="anchored" data-anchor-id="missing-timestamps-and-glucose-values">Missing timestamps and glucose values</h2>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sum</span>(<span class="fu">is.na</span>(cgm_all<span class="sc">$</span>time_utc))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sum</span>(<span class="fu">is.na</span>(cgm_all<span class="sc">$</span>glucose))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 6</code></pre>
+</div>
+</div>
+<p>I checked the dataset for missing timestamps and missing glucose measurements before continuing the analysis. Six glucose values could not be converted to numeric values and were treated as missing during quality control.</p>
+</section>
+<section id="duplicate-timestamps" class="level2">
+<h2 class="anchored" data-anchor-id="duplicate-timestamps">Duplicate timestamps</h2>
+<p>A duplicate was defined as having the same participant ID and UTC timestamp. Duplicate records were checked before creating summary features.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>duplicate_check <span class="ot">&lt;-</span> cgm_all <span class="sc">%&gt;%</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(person_id,time_utc) <span class="sc">%&gt;%</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">n=</span><span class="fu">n</span>(),</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups=</span><span class="st">"drop"</span></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(n<span class="sc">&gt;</span><span class="dv">1</span>)</span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>duplicate_check</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 0 × 3
+# ℹ 3 variables: person_id &lt;chr&gt;, time_utc &lt;dttm&gt;, n &lt;int&gt;</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>cgm_final <span class="ot">&lt;-</span> cgm_all <span class="sc">%&gt;%</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(person_id,time_utc) <span class="sc">%&gt;%</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">duplicate_n=</span><span class="fu">n</span>(),</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">duplicate_glucose_values=</span><span class="fu">n_distinct</span>(glucose)</span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(</span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>    duplicate_n<span class="sc">==</span><span class="dv">1</span> <span class="sc">|</span></span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>      duplicate_glucose_values<span class="sc">==</span><span class="dv">1</span></span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice</span>(<span class="dv">1</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="glucose-units" class="level2">
+<h2 class="anchored" data-anchor-id="glucose-units">Glucose units</h2>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="fu">unique</span>(cgm_all<span class="sc">$</span>glucose_unit)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "mg/dL"</code></pre>
+</div>
+</div>
+<p>All glucose measurements were checked to confirm they were recorded in mg/dL.</p>
+</section>
+<section id="unusual-glucose-values" class="level2">
+<h2 class="anchored" data-anchor-id="unusual-glucose-values">Unusual glucose values</h2>
+<p>Glucose values below 40 mg/dL or above 400 mg/dL were flagged as unusual and removed from summary calculations.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>cgm_all <span class="ot">&lt;-</span> cgm_all <span class="sc">%&gt;%</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">unusual_glucose =</span> glucose <span class="sc">&lt;</span> <span class="dv">40</span> <span class="sc">|</span> glucose <span class="sc">&gt;</span> <span class="dv">400</span></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a><span class="fu">table</span>(cgm_all<span class="sc">$</span>unusual_glucose)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+FALSE 
+14229 </code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>cgm_final <span class="ot">&lt;-</span> cgm_all <span class="sc">%&gt;%</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span>unusual_glucose)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+</section>
+<section id="determine-valid-cgm-days" class="level1">
+<h1>5. Determine Valid CGM Days</h1>
+<p>A valid CGM day was defined as having at least 202 readings, which represents 70% of the expected 288 five-minute readings in one day.</p>
+<p>Only valid CGM days were used for feature calculations.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>daily_qc <span class="ot">&lt;-</span> cgm_final <span class="sc">%&gt;%</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(person_id,date_local) <span class="sc">%&gt;%</span></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">n_readings=</span><span class="fu">n</span>(),</span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">percent_complete=</span><span class="fu">n</span>()<span class="sc">/</span><span class="dv">288</span><span class="sc">*</span><span class="dv">100</span>,</span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">valid_day=</span>n_readings<span class="sc">&gt;=</span><span class="dv">202</span>,</span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups=</span><span class="st">"drop"</span></span>
+<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-11"><a href="#cb30-11" aria-hidden="true" tabindex="-1"></a>daily_qc</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 55 × 5
+   person_id    date_local n_readings percent_complete valid_day
+   &lt;chr&gt;        &lt;date&gt;          &lt;int&gt;            &lt;dbl&gt; &lt;lgl&gt;    
+ 1 AIREADI-1029 2023-09-07         35             12.2 FALSE    
+ 2 AIREADI-1029 2023-09-08        288            100   TRUE     
+ 3 AIREADI-1029 2023-09-09        288            100   TRUE     
+ 4 AIREADI-1029 2023-09-10        288            100   TRUE     
+ 5 AIREADI-1029 2023-09-11        288            100   TRUE     
+ 6 AIREADI-1029 2023-09-12        288            100   TRUE     
+ 7 AIREADI-1029 2023-09-13        288            100   TRUE     
+ 8 AIREADI-1029 2023-09-14        288            100   TRUE     
+ 9 AIREADI-1029 2023-09-15        288            100   TRUE     
+10 AIREADI-1029 2023-09-16        288            100   TRUE     
+# ℹ 45 more rows</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>valid_dates <span class="ot">&lt;-</span> daily_qc <span class="sc">%&gt;%</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(valid_day)</span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>cgm_valid <span class="ot">&lt;-</span> cgm_final <span class="sc">%&gt;%</span></span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">inner_join</span>(</span>
+<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a>    valid_dates,</span>
+<span id="cb32-8"><a href="#cb32-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">by=</span><span class="fu">c</span>(<span class="st">"person_id"</span>,<span class="st">"date_local"</span>)</span>
+<span id="cb32-9"><a href="#cb32-9" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb32-10"><a href="#cb32-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-11"><a href="#cb32-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-12"><a href="#cb32-12" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(cgm_valid)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>     person_id event_type            time_utc timezone_abbreviation glucose
+1 AIREADI-1029        EGV 2023-09-08 00:03:07                   pst     107
+2 AIREADI-1029        EGV 2023-09-08 00:08:07                   pst     117
+3 AIREADI-1029        EGV 2023-09-08 00:13:07                   pst     129
+4 AIREADI-1029        EGV 2023-09-08 00:18:07                   pst     138
+5 AIREADI-1029        EGV 2023-09-08 00:23:07                   pst     141
+6 AIREADI-1029        EGV 2023-09-08 00:28:07                   pst     144
+  glucose_unit          time_local date_local hour_local is_dst unusual_glucose
+1        mg/dL 2023-09-07 17:03:07 2023-09-08         17   TRUE           FALSE
+2        mg/dL 2023-09-07 17:08:07 2023-09-08         17   TRUE           FALSE
+3        mg/dL 2023-09-07 17:13:07 2023-09-08         17   TRUE           FALSE
+4        mg/dL 2023-09-07 17:18:07 2023-09-08         17   TRUE           FALSE
+5        mg/dL 2023-09-07 17:23:07 2023-09-08         17   TRUE           FALSE
+6        mg/dL 2023-09-07 17:28:07 2023-09-08         17   TRUE           FALSE
+  n_readings percent_complete valid_day
+1        288              100      TRUE
+2        288              100      TRUE
+3        288              100      TRUE
+4        288              100      TRUE
+5        288              100      TRUE
+6        288              100      TRUE</code></pre>
+</div>
+</div>
+</section>
+<section id="create-summary-tables" class="level1">
+<h1>6. Create Summary Tables</h1>
+<section id="table-1-cgm-quality-control-summary" class="level2">
+<h2 class="anchored" data-anchor-id="table-1-cgm-quality-control-summary">Table 1: CGM Quality Control Summary</h2>
+<p>This table summarizes the quality-control steps performed before feature extraction.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>qc_summary <span class="ot">&lt;-</span> cgm_all <span class="sc">%&gt;%</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(person_id) <span class="sc">%&gt;%</span></span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">raw_EGV_readings=</span><span class="fu">n</span>(),</span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">missing_timestamp=</span><span class="fu">sum</span>(<span class="fu">is.na</span>(time_utc)),</span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">missing_glucose=</span><span class="fu">sum</span>(<span class="fu">is.na</span>(glucose)),</span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">duplicate_timestamps=</span><span class="fu">sum</span>(<span class="fu">duplicated</span>(time_utc)),</span>
+<span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">unusual_values=</span><span class="fu">sum</span>(unusual_glucose),</span>
+<span id="cb34-9"><a href="#cb34-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">cleaned_readings=</span><span class="fu">sum</span>(<span class="sc">!</span>unusual_glucose),</span>
+<span id="cb34-10"><a href="#cb34-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups=</span><span class="st">"drop"</span></span>
+<span id="cb34-11"><a href="#cb34-11" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
+<span id="cb34-12"><a href="#cb34-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(</span>
+<span id="cb34-13"><a href="#cb34-13" aria-hidden="true" tabindex="-1"></a>    daily_qc <span class="sc">%&gt;%</span></span>
+<span id="cb34-14"><a href="#cb34-14" aria-hidden="true" tabindex="-1"></a>      <span class="fu">group_by</span>(person_id) <span class="sc">%&gt;%</span></span>
+<span id="cb34-15"><a href="#cb34-15" aria-hidden="true" tabindex="-1"></a>      <span class="fu">summarise</span>(</span>
+<span id="cb34-16"><a href="#cb34-16" aria-hidden="true" tabindex="-1"></a>        <span class="at">valid_days=</span><span class="fu">sum</span>(valid_day),</span>
+<span id="cb34-17"><a href="#cb34-17" aria-hidden="true" tabindex="-1"></a>        <span class="at">.groups=</span><span class="st">"drop"</span></span>
+<span id="cb34-18"><a href="#cb34-18" aria-hidden="true" tabindex="-1"></a>      ),</span>
+<span id="cb34-19"><a href="#cb34-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">by=</span><span class="st">"person_id"</span></span>
+<span id="cb34-20"><a href="#cb34-20" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>This table summarizes the quality-control steps performed before calculating CGM features.</p>
+<p>The table shows how many readings were available before and after filtering. These results only describe data quality and do not prove that the CGM measurements are clinically accurate.</p>
+<hr>
+</section>
+<section id="table-2-participant-level-cgm-features" class="level2">
+<h2 class="anchored" data-anchor-id="table-2-participant-level-cgm-features">Table 2: Participant-Level CGM Features</h2>
+<p>Participant-level summaries were calculated using only cleaned readings from valid local days.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>participant_summary <span class="ot">&lt;-</span> cgm_valid <span class="sc">%&gt;%</span></span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(person_id) <span class="sc">%&gt;%</span></span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">cleaned_readings =</span> <span class="fu">n</span>(),</span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">valid_days =</span> <span class="fu">n_distinct</span>(date_local),</span>
+<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">mean_glucose =</span> <span class="fu">mean</span>(glucose),</span>
+<span id="cb35-10"><a href="#cb35-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">median_glucose =</span> <span class="fu">median</span>(glucose),</span>
+<span id="cb35-11"><a href="#cb35-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">sd_glucose =</span> <span class="fu">sd</span>(glucose),</span>
+<span id="cb35-12"><a href="#cb35-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-13"><a href="#cb35-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">cv =</span> sd_glucose <span class="sc">/</span> mean_glucose <span class="sc">*</span> <span class="dv">100</span>,</span>
+<span id="cb35-14"><a href="#cb35-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-15"><a href="#cb35-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">pct_70_180 =</span> <span class="fu">mean</span>(glucose <span class="sc">&gt;=</span> <span class="dv">70</span> <span class="sc">&amp;</span> glucose <span class="sc">&lt;=</span> <span class="dv">180</span>, <span class="at">na.rm=</span><span class="cn">TRUE</span>) <span class="sc">*</span> <span class="dv">100</span>,</span>
+<span id="cb35-16"><a href="#cb35-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-17"><a href="#cb35-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">pct_above_180 =</span> <span class="fu">mean</span>(glucose <span class="sc">&gt;</span> <span class="dv">180</span>, <span class="at">na.rm=</span><span class="cn">TRUE</span>) <span class="sc">*</span> <span class="dv">100</span>,</span>
+<span id="cb35-18"><a href="#cb35-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-19"><a href="#cb35-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">pct_above_250 =</span> <span class="fu">mean</span>(glucose <span class="sc">&gt;</span> <span class="dv">250</span>, <span class="at">na.rm=</span><span class="cn">TRUE</span>) <span class="sc">*</span> <span class="dv">100</span>,</span>
+<span id="cb35-20"><a href="#cb35-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-21"><a href="#cb35-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">pct_below_70 =</span> <span class="fu">mean</span>(glucose <span class="sc">&lt;</span> <span class="dv">70</span>, <span class="at">na.rm=</span><span class="cn">TRUE</span>) <span class="sc">*</span> <span class="dv">100</span>,</span>
+<span id="cb35-22"><a href="#cb35-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-23"><a href="#cb35-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">pct_below_54 =</span> <span class="fu">mean</span>(glucose <span class="sc">&lt;</span> <span class="dv">54</span>, <span class="at">na.rm=</span><span class="cn">TRUE</span>) <span class="sc">*</span> <span class="dv">100</span>,</span>
+<span id="cb35-24"><a href="#cb35-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-25"><a href="#cb35-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups=</span><span class="st">"drop"</span></span>
+<span id="cb35-26"><a href="#cb35-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-27"><a href="#cb35-27" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb35-28"><a href="#cb35-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-29"><a href="#cb35-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-30"><a href="#cb35-30" aria-hidden="true" tabindex="-1"></a>participant_summary</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 5 × 12
+  person_id   cleaned_readings valid_days mean_glucose median_glucose sd_glucose
+  &lt;chr&gt;                  &lt;int&gt;      &lt;int&gt;        &lt;dbl&gt;          &lt;dbl&gt;      &lt;dbl&gt;
+1 AIREADI-10…             2821         10         111.            109       11.6
+2 AIREADI-10…             2828         10         114.            110       21.5
+3 AIREADI-10…             2845         10         121.            121       21.5
+4 AIREADI-10…             2809         10         130.            123       23.9
+5 AIREADI-10…             2567          9         117.            114       19.8
+# ℹ 6 more variables: cv &lt;dbl&gt;, pct_70_180 &lt;dbl&gt;, pct_above_180 &lt;dbl&gt;,
+#   pct_above_250 &lt;dbl&gt;, pct_below_70 &lt;dbl&gt;, pct_below_54 &lt;dbl&gt;</code></pre>
+</div>
+</div>
+<p>This table summarizes overall glucose patterns for each participant using only valid CGM days.</p>
+<p>The features describe glucose levels and variability but do not explain why glucose changed.</p>
+<hr>
+</section>
+<section id="table-3-participant-day-cgm-features" class="level2">
+<h2 class="anchored" data-anchor-id="table-3-participant-day-cgm-features">Table 3: Participant-Day CGM Features</h2>
+<p>Each row represents one participant and one valid local calendar day.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>participant_day_summary <span class="ot">&lt;-</span> cgm_valid <span class="sc">%&gt;%</span></span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(person_id,date_local) <span class="sc">%&gt;%</span></span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">cleaned_readings =</span> <span class="fu">n</span>(),</span>
+<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-7"><a href="#cb37-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">percent_complete =</span> <span class="fu">n</span>()<span class="sc">/</span><span class="dv">288</span><span class="sc">*</span><span class="dv">100</span>,</span>
+<span id="cb37-8"><a href="#cb37-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-9"><a href="#cb37-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">mean_glucose =</span> <span class="fu">mean</span>(glucose),</span>
+<span id="cb37-10"><a href="#cb37-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-11"><a href="#cb37-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">sd_glucose =</span> <span class="fu">sd</span>(glucose),</span>
+<span id="cb37-12"><a href="#cb37-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-13"><a href="#cb37-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">pct_70_180 =</span> <span class="fu">mean</span>(glucose <span class="sc">&gt;=</span><span class="dv">70</span> <span class="sc">&amp;</span> glucose <span class="sc">&lt;=</span><span class="dv">180</span>)<span class="sc">*</span><span class="dv">100</span>,</span>
+<span id="cb37-14"><a href="#cb37-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-15"><a href="#cb37-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">pct_above_180 =</span> <span class="fu">mean</span>(glucose <span class="sc">&gt;</span><span class="dv">180</span>)<span class="sc">*</span><span class="dv">100</span>,</span>
+<span id="cb37-16"><a href="#cb37-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-17"><a href="#cb37-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">pct_below_70 =</span> <span class="fu">mean</span>(glucose <span class="sc">&lt;</span><span class="dv">70</span>)<span class="sc">*</span><span class="dv">100</span>,</span>
+<span id="cb37-18"><a href="#cb37-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-19"><a href="#cb37-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">daytime_readings =</span> <span class="fu">sum</span>(hour_local <span class="sc">&gt;=</span> <span class="dv">6</span>),</span>
+<span id="cb37-20"><a href="#cb37-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-21"><a href="#cb37-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">nighttime_readings =</span> <span class="fu">sum</span>(hour_local <span class="sc">&lt;</span> <span class="dv">6</span>),</span>
+<span id="cb37-22"><a href="#cb37-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-23"><a href="#cb37-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">daytime_mean =</span> <span class="fu">mean</span>(glucose[hour_local <span class="sc">&gt;=</span> <span class="dv">6</span>]),</span>
+<span id="cb37-24"><a href="#cb37-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-25"><a href="#cb37-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">nighttime_mean =</span> <span class="fu">mean</span>(glucose[hour_local <span class="sc">&lt;</span> <span class="dv">6</span>]),</span>
+<span id="cb37-26"><a href="#cb37-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-27"><a href="#cb37-27" aria-hidden="true" tabindex="-1"></a>    <span class="at">daytime_sd =</span> <span class="fu">sd</span>(glucose[hour_local <span class="sc">&gt;=</span> <span class="dv">6</span>]),</span>
+<span id="cb37-28"><a href="#cb37-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-29"><a href="#cb37-29" aria-hidden="true" tabindex="-1"></a>    <span class="at">nighttime_sd =</span> <span class="fu">sd</span>(glucose[hour_local <span class="sc">&lt;</span> <span class="dv">6</span>]),</span>
+<span id="cb37-30"><a href="#cb37-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-31"><a href="#cb37-31" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups=</span><span class="st">"drop"</span></span>
+<span id="cb37-32"><a href="#cb37-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-33"><a href="#cb37-33" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb37-34"><a href="#cb37-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-35"><a href="#cb37-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-36"><a href="#cb37-36" aria-hidden="true" tabindex="-1"></a>participant_day_summary</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 49 × 15
+   person_id    date_local cleaned_readings percent_complete mean_glucose
+   &lt;chr&gt;        &lt;date&gt;                &lt;int&gt;            &lt;dbl&gt;        &lt;dbl&gt;
+ 1 AIREADI-1029 2023-09-08              288            100           114.
+ 2 AIREADI-1029 2023-09-09              288            100           113.
+ 3 AIREADI-1029 2023-09-10              288            100           113.
+ 4 AIREADI-1029 2023-09-11              288            100           114.
+ 5 AIREADI-1029 2023-09-12              288            100           111.
+ 6 AIREADI-1029 2023-09-13              288            100           111.
+ 7 AIREADI-1029 2023-09-14              288            100           108.
+ 8 AIREADI-1029 2023-09-15              288            100           108.
+ 9 AIREADI-1029 2023-09-16              288            100           109.
+10 AIREADI-1029 2023-09-17              229             79.5         105.
+# ℹ 39 more rows
+# ℹ 10 more variables: sd_glucose &lt;dbl&gt;, pct_70_180 &lt;dbl&gt;, pct_above_180 &lt;dbl&gt;,
+#   pct_below_70 &lt;dbl&gt;, daytime_readings &lt;int&gt;, nighttime_readings &lt;int&gt;,
+#   daytime_mean &lt;dbl&gt;, nighttime_mean &lt;dbl&gt;, daytime_sd &lt;dbl&gt;,
+#   nighttime_sd &lt;dbl&gt;</code></pre>
+</div>
+</div>
+<p>These features will allow future analysis of relationships between glucose patterns, sleep, and activity.</p>
+<p>Daytime and nighttime periods were defined using clock time rather than actual sleep measurements.</p>
+<hr>
+</section>
+</section>
+<section id="figures" class="level1">
+<h1>7. Figures</h1>
+<section id="figure-1-full-cgm-trace" class="level2">
+<h2 class="anchored" data-anchor-id="figure-1-full-cgm-trace">Figure 1: Full CGM Trace</h2>
+<p>The first participant with valid CGM data was selected to show the full glucose pattern over the monitoring period.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>example_participant <span class="ot">&lt;-</span> <span class="fu">unique</span>(cgm_valid<span class="sc">$</span>person_id)[<span class="dv">1</span>]</span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>full_trace <span class="ot">&lt;-</span> cgm_valid <span class="sc">%&gt;%</span></span>
+<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(person_id <span class="sc">==</span> example_participant)</span>
+<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-7"><a href="#cb39-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-8"><a href="#cb39-8" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(</span>
+<span id="cb39-9"><a href="#cb39-9" aria-hidden="true" tabindex="-1"></a>  full_trace,</span>
+<span id="cb39-10"><a href="#cb39-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x=</span>time_local,<span class="at">y=</span>glucose)</span>
+<span id="cb39-11"><a href="#cb39-11" aria-hidden="true" tabindex="-1"></a>) <span class="sc">+</span></span>
+<span id="cb39-12"><a href="#cb39-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>() <span class="sc">+</span></span>
+<span id="cb39-13"><a href="#cb39-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb39-14"><a href="#cb39-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">title=</span><span class="fu">paste</span>(</span>
+<span id="cb39-15"><a href="#cb39-15" aria-hidden="true" tabindex="-1"></a>      <span class="st">"Full CGM Trace:"</span>,</span>
+<span id="cb39-16"><a href="#cb39-16" aria-hidden="true" tabindex="-1"></a>      example_participant</span>
+<span id="cb39-17"><a href="#cb39-17" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb39-18"><a href="#cb39-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">x=</span><span class="st">"Local Time"</span>,</span>
+<span id="cb39-19"><a href="#cb39-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">y=</span><span class="st">"Glucose (mg/dL)"</span></span>
+<span id="cb39-20"><a href="#cb39-20" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="02_cgm_qc_features_files/figure-html/unnamed-chunk-14-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>This figure shows changes in glucose over time. It does not explain the reasons for those changes because information such as meals, exercise, medications, and sleep are not included.</p>
+<hr>
+</section>
+<section id="figure-2-example-valid-local-day-traces" class="level2">
+<h2 class="anchored" data-anchor-id="figure-2-example-valid-local-day-traces">Figure 2: Example Valid Local-Day Traces</h2>
+<p>Two valid participant-days were selected to show daily differences in CGM patterns.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>example_days <span class="ot">&lt;-</span> cgm_valid <span class="sc">%&gt;%</span></span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(person_id,date_local) <span class="sc">%&gt;%</span></span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">readings=</span><span class="fu">n</span>(),</span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups=</span><span class="st">"drop"</span></span>
+<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
+<span id="cb40-7"><a href="#cb40-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(readings<span class="sc">&gt;=</span><span class="dv">202</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb40-8"><a href="#cb40-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>)</span>
+<span id="cb40-9"><a href="#cb40-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-10"><a href="#cb40-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-11"><a href="#cb40-11" aria-hidden="true" tabindex="-1"></a>two_days <span class="ot">&lt;-</span> cgm_valid <span class="sc">%&gt;%</span></span>
+<span id="cb40-12"><a href="#cb40-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">semi_join</span>(</span>
+<span id="cb40-13"><a href="#cb40-13" aria-hidden="true" tabindex="-1"></a>    example_days,</span>
+<span id="cb40-14"><a href="#cb40-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">by=</span><span class="fu">c</span>(<span class="st">"person_id"</span>,<span class="st">"date_local"</span>)</span>
+<span id="cb40-15"><a href="#cb40-15" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb40-16"><a href="#cb40-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-17"><a href="#cb40-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-18"><a href="#cb40-18" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(</span>
+<span id="cb40-19"><a href="#cb40-19" aria-hidden="true" tabindex="-1"></a>  two_days,</span>
+<span id="cb40-20"><a href="#cb40-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(</span>
+<span id="cb40-21"><a href="#cb40-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">x=</span>time_local,</span>
+<span id="cb40-22"><a href="#cb40-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">y=</span>glucose,</span>
+<span id="cb40-23"><a href="#cb40-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">color=</span><span class="fu">factor</span>(date_local)</span>
+<span id="cb40-24"><a href="#cb40-24" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb40-25"><a href="#cb40-25" aria-hidden="true" tabindex="-1"></a>) <span class="sc">+</span></span>
+<span id="cb40-26"><a href="#cb40-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>() <span class="sc">+</span></span>
+<span id="cb40-27"><a href="#cb40-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb40-28"><a href="#cb40-28" aria-hidden="true" tabindex="-1"></a>    <span class="at">title=</span><span class="st">"CGM Traces for Two Valid Participant-Days"</span>,</span>
+<span id="cb40-29"><a href="#cb40-29" aria-hidden="true" tabindex="-1"></a>    <span class="at">x=</span><span class="st">"Local Time"</span>,</span>
+<span id="cb40-30"><a href="#cb40-30" aria-hidden="true" tabindex="-1"></a>    <span class="at">y=</span><span class="st">"Glucose (mg/dL)"</span></span>
+<span id="cb40-31"><a href="#cb40-31" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="02_cgm_qc_features_files/figure-html/unnamed-chunk-15-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>This figure demonstrates that glucose patterns can change from day to day. More information is needed to determine why these differences occur.</p>
+<hr>
+</section>
+<section id="figure-3-agp-style-plot" class="level2">
+<h2 class="anchored" data-anchor-id="figure-3-agp-style-plot">Figure 3: AGP-Style Plot</h2>
+<p>This AGP-style figure summarizes glucose patterns across valid CGM days for one participant.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>agp_participant <span class="ot">&lt;-</span> <span class="fu">unique</span>(cgm_valid<span class="sc">$</span>person_id)[<span class="dv">1</span>]</span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>agp <span class="ot">&lt;-</span> cgm_valid <span class="sc">%&gt;%</span></span>
+<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(person_id <span class="sc">==</span> agp_participant) <span class="sc">%&gt;%</span></span>
+<span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb41-7"><a href="#cb41-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">time_of_day =</span> hour_local<span class="sc">*</span><span class="dv">60</span> <span class="sc">+</span> <span class="fu">minute</span>(time_local)</span>
+<span id="cb41-8"><a href="#cb41-8" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
+<span id="cb41-9"><a href="#cb41-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(time_of_day) <span class="sc">%&gt;%</span></span>
+<span id="cb41-10"><a href="#cb41-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb41-11"><a href="#cb41-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-12"><a href="#cb41-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">median_glucose =</span> <span class="fu">median</span>(glucose),</span>
+<span id="cb41-13"><a href="#cb41-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-14"><a href="#cb41-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">lower =</span> <span class="fu">quantile</span>(glucose,<span class="fl">0.25</span>),</span>
+<span id="cb41-15"><a href="#cb41-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-16"><a href="#cb41-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">upper =</span> <span class="fu">quantile</span>(glucose,<span class="fl">0.75</span>),</span>
+<span id="cb41-17"><a href="#cb41-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-18"><a href="#cb41-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups=</span><span class="st">"drop"</span></span>
+<span id="cb41-19"><a href="#cb41-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-20"><a href="#cb41-20" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb41-21"><a href="#cb41-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-22"><a href="#cb41-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-23"><a href="#cb41-23" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(</span>
+<span id="cb41-24"><a href="#cb41-24" aria-hidden="true" tabindex="-1"></a>  agp,</span>
+<span id="cb41-25"><a href="#cb41-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x=</span>time_of_day)</span>
+<span id="cb41-26"><a href="#cb41-26" aria-hidden="true" tabindex="-1"></a>) <span class="sc">+</span></span>
+<span id="cb41-27"><a href="#cb41-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-28"><a href="#cb41-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_ribbon</span>(</span>
+<span id="cb41-29"><a href="#cb41-29" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(</span>
+<span id="cb41-30"><a href="#cb41-30" aria-hidden="true" tabindex="-1"></a>      <span class="at">ymin=</span>lower,</span>
+<span id="cb41-31"><a href="#cb41-31" aria-hidden="true" tabindex="-1"></a>      <span class="at">ymax=</span>upper</span>
+<span id="cb41-32"><a href="#cb41-32" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb41-33"><a href="#cb41-33" aria-hidden="true" tabindex="-1"></a>    <span class="at">alpha=</span><span class="fl">0.3</span></span>
+<span id="cb41-34"><a href="#cb41-34" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb41-35"><a href="#cb41-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-36"><a href="#cb41-36" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(</span>
+<span id="cb41-37"><a href="#cb41-37" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">y=</span>median_glucose)</span>
+<span id="cb41-38"><a href="#cb41-38" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb41-39"><a href="#cb41-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-40"><a href="#cb41-40" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(</span>
+<span id="cb41-41"><a href="#cb41-41" aria-hidden="true" tabindex="-1"></a>    <span class="at">yintercept=</span><span class="dv">70</span></span>
+<span id="cb41-42"><a href="#cb41-42" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb41-43"><a href="#cb41-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-44"><a href="#cb41-44" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(</span>
+<span id="cb41-45"><a href="#cb41-45" aria-hidden="true" tabindex="-1"></a>    <span class="at">yintercept=</span><span class="dv">180</span></span>
+<span id="cb41-46"><a href="#cb41-46" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb41-47"><a href="#cb41-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-48"><a href="#cb41-48" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb41-49"><a href="#cb41-49" aria-hidden="true" tabindex="-1"></a>    <span class="at">title=</span><span class="fu">paste</span>(</span>
+<span id="cb41-50"><a href="#cb41-50" aria-hidden="true" tabindex="-1"></a>      <span class="st">"AGP-Style CGM Profile:"</span>,</span>
+<span id="cb41-51"><a href="#cb41-51" aria-hidden="true" tabindex="-1"></a>      agp_participant</span>
+<span id="cb41-52"><a href="#cb41-52" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb41-53"><a href="#cb41-53" aria-hidden="true" tabindex="-1"></a>    <span class="at">x=</span><span class="st">"Minutes After Midnight"</span>,</span>
+<span id="cb41-54"><a href="#cb41-54" aria-hidden="true" tabindex="-1"></a>    <span class="at">y=</span><span class="st">"Glucose (mg/dL)"</span></span>
+<span id="cb41-55"><a href="#cb41-55" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="02_cgm_qc_features_files/figure-html/unnamed-chunk-16-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The figure shows the typical glucose pattern and the amount of variation across days. This is an educational AGP-style visualization and should not be interpreted as a clinical AGP because clinical interpretation usually requires 14 days of sufficient CGM data.</p>
+<hr>
+</section>
+</section>
+<section id="week-3-preparation" class="level1">
+<h1>8. Week 3 Preparation</h1>
+<section id="which-participants-have-at-least-one-valid-local-day" class="level2">
+<h2 class="anchored" data-anchor-id="which-participants-have-at-least-one-valid-local-day">Which participants have at least one valid local day?</h2>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="fu">unique</span>(cgm_valid<span class="sc">$</span>person_id)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "AIREADI-1029" "AIREADI-1042" "AIREADI-1046" "AIREADI-1054" "AIREADI-1055"</code></pre>
+</div>
+</div>
+<p>All five participants had at least one valid local CGM day.</p>
+<hr>
+</section>
+<section id="which-local-dates-are-valid-for-each-participant" class="level2">
+<h2 class="anchored" data-anchor-id="which-local-dates-are-valid-for-each-participant">Which local dates are valid for each participant?</h2>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a>valid_dates</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 49 × 5
+   person_id    date_local n_readings percent_complete valid_day
+   &lt;chr&gt;        &lt;date&gt;          &lt;int&gt;            &lt;dbl&gt; &lt;lgl&gt;    
+ 1 AIREADI-1029 2023-09-08        288            100   TRUE     
+ 2 AIREADI-1029 2023-09-09        288            100   TRUE     
+ 3 AIREADI-1029 2023-09-10        288            100   TRUE     
+ 4 AIREADI-1029 2023-09-11        288            100   TRUE     
+ 5 AIREADI-1029 2023-09-12        288            100   TRUE     
+ 6 AIREADI-1029 2023-09-13        288            100   TRUE     
+ 7 AIREADI-1029 2023-09-14        288            100   TRUE     
+ 8 AIREADI-1029 2023-09-15        288            100   TRUE     
+ 9 AIREADI-1029 2023-09-16        288            100   TRUE     
+10 AIREADI-1029 2023-09-17        229             79.5 TRUE     
+# ℹ 39 more rows</code></pre>
+</div>
+</div>
+<p>This table shows the participant-date combinations that passed the CGM quality criteria.</p>
+<hr>
+</section>
+<section id="which-timestamp-will-be-used-to-align-cgm-with-sleepactivity-intervals" class="level2">
+<h2 class="anchored" data-anchor-id="which-timestamp-will-be-used-to-align-cgm-with-sleepactivity-intervals">Which timestamp will be used to align CGM with sleep/activity intervals?</h2>
+<p>The <code>time_local</code> variable will be used because sleep and activity data are recorded using the participant’s local time.</p>
+<hr>
+</section>
+<section id="does-the-participant-day-table-have-exactly-one-row-per-person_id-date_local-combination" class="level2">
+<h2 class="anchored" data-anchor-id="does-the-participant-day-table-have-exactly-one-row-per-person_id-date_local-combination">Does the participant-day table have exactly one row per person_id + date_local combination?</h2>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a>participant_day_summary <span class="sc">%&gt;%</span></span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(person_id,date_local) <span class="sc">%&gt;%</span></span>
+<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(n<span class="sc">&gt;</span><span class="dv">1</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 0 × 3
+# ℹ 3 variables: person_id &lt;chr&gt;, date_local &lt;date&gt;, n &lt;int&gt;</code></pre>
+</div>
+</div>
+<p>No duplicate participant-day combinations were found. Each row represents one participant and one local calendar day.</p>
+<hr>
+</section>
+<section id="is-the-participant-day-table-ready-to-join-with-sleepactivity-data" class="level2">
+<h2 class="anchored" data-anchor-id="is-the-participant-day-table-ready-to-join-with-sleepactivity-data">Is the participant-day table ready to join with sleep/activity data?</h2>
+<p>The participant-day table is ready for future sleep and activity analyses because it contains one row per participant-day with summarized glucose features.</p>
+<p>Future work will apply this workflow to more participants and combine CGM patterns with wearable sleep and activity data.</p>
+<hr>
+</section>
+</section>
+<section id="week-3-presentation-summary" class="level1">
+<h1>Week 3 Presentation Summary</h1>
+<p>For the Week 3 update:</p>
+<ul>
+<li><p>CGM data were cleaned and checked for missing values, duplicate timestamps, incorrect units, and unusual glucose values.</p></li>
+<li><p>CGM visualizations were created, including full traces and an AGP-style plot.</p></li>
+<li><p>Participant-level and participant-day glucose features were calculated.</p></li>
+<li><p>A challenge was processing Dexcom data stored as nested JSON files and converting timestamps correctly.</p></li>
+<li><p>The next step is to study how sleep and activity patterns relate to individual glucose changes.</p></li>
+</ul>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
