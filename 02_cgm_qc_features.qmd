@@ -1,0 +1,560 @@
+---
+title: "Week 02: CGM QC Features"
+author: "Shubho Banerjee"
+date: "2026-07-21"
+toc: true
+toc-location: left
+format: html
+editor: visual
+---
+
+# Introduction
+
+The goal of this notebook is to clean Dexcom G6 continuous glucose monitoring (CGM) data and create summaries at both the participant level and participant-day level. These results will be used later to study how sleep and activity relate to glucose patterns.
+
+I first tested the workflow using one participant and then applied the final pipeline to five CGM participants from the AI-READI mini dataset.
+
+For this assignment, I used all valid CGM days available (up to about 10 days). The AGP-style figure shown here is for learning and visualization purposes only. It should not be considered a clinical 14-day AGP report.
+
+```{r}
+library(jsonlite)   # reads the raw Dexcom JSON files
+library(dplyr)      # table cleaning/summarizing (filter, mutate, summarise, etc.)
+library(lubridate)  # date/time parsing and timezone conversion
+library(ggplot2)    # figures
+library(scales)     # axis formatting helpers for ggplot2
+```
+
+# 1. Identify CGM Participants
+
+Dexcom files are stored in one folder per participant. `list.dirs()` lists every participant sub-folder; `recursive = FALSE` keeps it to one level deep. The first five folders were selected to build and test the pipeline before scaling up.
+
+```{r}
+dex_path <- "data/mini/v3-mini/dataset/wearable_blood_glucose/continuous_glucose_monitoring/dexcom_g6"
+
+participants <- list.dirs(
+  dex_path,
+  recursive = FALSE
+)
+
+participants_5 <- participants[1:5]
+participants_5
+```
+
+# 2. Create CGM Cleaning Function
+
+Each Dexcom JSON file has a header (participant ID, timezone) and a body (the glucose readings). This function turns one raw file into one clean table. `flatten = TRUE` collapses nested JSON fields into single dot-named columns (e.g. `blood_glucose.value`). The `if` block is a safety net that only runs if `dex$body` didn't parse into a clean table already. It forces each reading into its own row and stacks them.
+
+`filter(event_type == "EGV")` keeps only actual glucose readings (EGV = Estimated Glucose Value), excluding calibration/alert events. `transmute()` (rather than `mutate()`) builds a fresh table with only these named columns, dropping every other raw JSON field. `as.numeric(blood_glucose.value)` converts text to numbers; anything non-numeric silently becomes `NA`. This is the source of the missing glucose values found later.
+
+`tz_choice` maps the device's raw timezone label to a proper IANA timezone name. IANA names (e.g. `America/Los_Angeles`) carry real daylight-saving rules for that region, so R can correctly switch between standard/daylight time automatically, as a raw label like "pst" alone can't do that. `TRUE ~ "UTC"` is the fallback if nothing matches.
+
+The final `mutate()` (not `transmute()`, since we want to keep everything built so far) parses the raw timestamp as UTC, converts it to local time, and derives local date/hour and a daylight-saving flag.
+
+```{r}
+clean_cgm_file <- function(file_path){
+  
+  dex <- fromJSON(
+    file_path,
+    flatten = TRUE
+  )
+  
+  # Extract Dexcom CGM event table
+  cgm_egv <- dex$body
+  
+  if (is.list(cgm_egv) && !"event_type" %in% names(cgm_egv)) {
+    
+    cgm_egv <- do.call(
+      rbind,
+      lapply(cgm_egv, as.data.frame)
+    )
+    
+  }
+  
+  cgm_egv <- as.data.frame(cgm_egv)
+  
+  cgm_clean <- cgm_egv %>%
+    filter(event_type == "EGV") %>%
+    transmute(
+      person_id = dex$header$patient_id,
+      event_type,
+      time_utc = effective_time_frame.time_interval.start_date_time,
+      timezone_abbreviation = dex$header$timezone,
+      glucose = as.numeric(blood_glucose.value),
+      glucose_unit = blood_glucose.unit
+    )
+  
+  tz_choice <- case_when(
+    cgm_clean$timezone_abbreviation[1] %in% c("pst","pdt") ~ "America/Los_Angeles",
+    cgm_clean$timezone_abbreviation[1] %in% c("mst","mdt") ~ "America/Denver",
+    cgm_clean$timezone_abbreviation[1] %in% c("cst","cdt") ~ "America/Chicago",
+    cgm_clean$timezone_abbreviation[1] %in% c("est","edt") ~ "America/New_York",
+    TRUE ~ "UTC"
+  )
+  
+  cgm_clean %>%
+    mutate(
+      time_utc = ymd_hms(time_utc, tz="UTC"),
+      time_local = with_tz(time_utc, tz_choice),
+      date_local = as.Date(time_local),
+      hour_local = hour(time_local),
+      is_dst = dst(time_local)
+    )
+  
+}
+```
+
+# 3. Apply Cleaning Pipeline to Five Participants
+
+Runs `clean_cgm_file()` once per participant folder (returning a list of 5 tables), then `bind_rows()` stacks them into one combined table.
+
+```{r}
+cgm_all <- lapply(
+  participants_5,
+  function(folder){
+    
+    json_file <- list.files(
+      folder,
+      pattern = "\\.json$",
+      full.names = TRUE
+    )
+    
+    clean_cgm_file(json_file[1])
+    
+  }
+)
+
+cgm_all <- bind_rows(cgm_all)
+
+head(cgm_all)
+
+table(cgm_all$person_id)
+```
+
+`table()` shows reading counts per participant: roughly 2,800–2,900 each, consistent with \~10 days at 288 readings/day.
+
+The cleaned dataset contains CGM readings from five AI-READI participants.
+
+# 4. Quality Control Checks
+
+## Missing timestamps and glucose values
+
+```{r}
+sum(is.na(cgm_all$time_utc))
+
+sum(is.na(cgm_all$glucose))
+```
+
+Zero missing timestamps. Six glucose values that couldn't be converted to numbers, treated as missing.
+
+## Duplicate timestamps
+
+A duplicate = same participant ID + same UTC timestamp. Groups by participant + timestamp, counts rows per group, keeps only groups with more than one, with none found here.
+
+```{r}
+duplicate_check <- cgm_all %>%
+  group_by(person_id,time_utc) %>%
+  summarise(
+    n=n(),
+    .groups="drop"
+  ) %>%
+  filter(n>1)
+
+duplicate_check
+```
+
+General-purpose duplicate handler, built in case duplicates existed: keeps a row if it's not duplicated, or if all its duplicate copies agree on glucose value (`n_distinct(glucose)==1`); disagreeing duplicates get dropped; agreeing duplicates get collapsed to one copy via `slice(1)`. No effect here since no duplicates were found.
+
+```{r}
+cgm_final <- cgm_all %>%
+  group_by(person_id,time_utc) %>%
+  mutate(
+    duplicate_n=n(),
+    duplicate_glucose_values=n_distinct(glucose)
+  ) %>%
+  filter(
+    duplicate_n==1 |
+      duplicate_glucose_values==1
+  ) %>%
+  slice(1) %>%
+  ungroup()
+```
+
+## Glucose units
+
+```{r}
+unique(cgm_all$glucose_unit)
+```
+
+Only "mg/dL" appears.
+
+## Unusual glucose values
+
+Glucose below 40 or above 400 mg/dL is treated as an implausible/erroneous reading for this exercise (a data-processing rule, not a clinical threshold).
+
+```{r}
+cgm_all <- cgm_all %>%
+  mutate(
+    unusual_glucose = glucose < 40 | glucose > 400
+  )
+
+table(cgm_all$unusual_glucose)
+```
+
+None flagged as unusual here. This next step drops unusual (and, as a side effect, missing) glucose rows so `cgm_final` is now the clean, one-reading-per-row dataset.
+
+```{r}
+cgm_final <- cgm_all %>%
+  filter(!unusual_glucose)
+```
+
+# 5. Determine Valid CGM Days
+
+A CGM day is only trustworthy if the sensor captured enough of it. A "valid day" needs at least 202 of the expected 288 five-minute readings (\~70% coverage), which is the same completeness standard used in clinical CGM interpretation.
+
+```{r}
+daily_qc <- cgm_final %>%
+  group_by(person_id,date_local) %>%
+  summarise(
+    n_readings=n(),
+    percent_complete=n()/288*100,
+    valid_day=n_readings>=202,
+    .groups="drop"
+  )
+
+daily_qc
+```
+
+`inner_join()` keeps only readings whose (participant, date) also appears in `valid_dates`. Readings from invalid days are automatically dropped. This enforces "only valid-day data from here forward."
+
+```{r}
+valid_dates <- daily_qc %>%
+  filter(valid_day)
+
+cgm_valid <- cgm_final %>%
+  inner_join(
+    valid_dates,
+    by=c("person_id","date_local")
+  )
+
+head(cgm_valid)
+```
+
+# 6. Create Summary Tables
+
+## Table 1: CGM Quality Control Summary
+
+Shows how much data existed, and how much survived cleaning, per participant. This describes data quality only and it says nothing about whether someone's glucose control was good or bad. `left_join()` attaches each participant's valid-day count (calculated separately from `daily_qc`) onto the QC summary, keeping every row from the summary table.
+
+```{r}
+qc_summary <- cgm_all %>%
+  group_by(person_id) %>%
+  summarise(
+    raw_EGV_readings=n(),
+    missing_timestamp=sum(is.na(time_utc)),
+    missing_glucose=sum(is.na(glucose)),
+    duplicate_timestamps=sum(duplicated(time_utc)),
+    unusual_values=sum(unusual_glucose),
+    cleaned_readings=sum(!unusual_glucose),
+    .groups="drop"
+  ) %>%
+  left_join(
+    daily_qc %>%
+      group_by(person_id) %>%
+      summarise(
+        valid_days=sum(valid_day),
+        .groups="drop"
+      ),
+    by="person_id"
+  )
+```
+
+------------------------------------------------------------------------
+
+## Table 2: Participant-Level CGM Features
+
+One row per participant, summarizing their overall glucose pattern across all valid days. `cv` (coefficient of variation) expresses glucose variability as a percentage of the mean, so variability can be compared across people regardless of average glucose level. Each `pct_*` line takes the average of a TRUE/FALSE condition (proportion of readings meeting it), converted to a percentage since CGM readings occur \~every 5 minutes, % of readings approximates % of time. 70–180 mg/dL is the standard target range; above-250 counts are also included in above-180; below-54 counts are also included in below-70 intentional overlap.
+
+```{r}
+participant_summary <- cgm_valid %>%
+  group_by(person_id) %>%
+  summarise(
+
+    cleaned_readings = n(),
+
+    valid_days = n_distinct(date_local),
+
+    mean_glucose = mean(glucose),
+    median_glucose = median(glucose),
+    sd_glucose = sd(glucose),
+
+    cv = sd_glucose / mean_glucose * 100,
+
+    pct_70_180 = mean(glucose >= 70 & glucose <= 180, na.rm=TRUE) * 100,
+
+    pct_above_180 = mean(glucose > 180, na.rm=TRUE) * 100,
+
+    pct_above_250 = mean(glucose > 250, na.rm=TRUE) * 100,
+
+    pct_below_70 = mean(glucose < 70, na.rm=TRUE) * 100,
+
+    pct_below_54 = mean(glucose < 54, na.rm=TRUE) * 100,
+
+    .groups="drop"
+
+  )
+
+participant_summary
+```
+
+This table summarizes overall glucose patterns per participant. It describes levels and variability, not causes.
+
+------------------------------------------------------------------------
+
+## Table 3: Participant-Day CGM Features
+
+One row per participant, per valid local day. The same features as Table 2, but broken down day by day, plus a daytime/nighttime split. `glucose[hour_local >= 6]` subsets glucose values to daytime hours (6:00 AM–11:59 PM) before averaging; the mirrored condition (`< 6`) covers nighttime (12:00 AM–5:59 AM). This is a clock-time split, not actual sleep/wake timing. It'll be replaced once Garmin sleep data is available.
+
+```{r}
+participant_day_summary <- cgm_valid %>%
+  group_by(person_id,date_local) %>%
+  summarise(
+
+    cleaned_readings = n(),
+
+    percent_complete = n()/288*100,
+
+    mean_glucose = mean(glucose),
+
+    sd_glucose = sd(glucose),
+
+    pct_70_180 = mean(glucose >=70 & glucose <=180)*100,
+
+    pct_above_180 = mean(glucose >180)*100,
+
+    pct_below_70 = mean(glucose <70)*100,
+
+
+    daytime_readings = sum(hour_local >= 6),
+
+    nighttime_readings = sum(hour_local < 6),
+
+
+    daytime_mean = mean(glucose[hour_local >= 6]),
+
+    nighttime_mean = mean(glucose[hour_local < 6]),
+
+
+    daytime_sd = sd(glucose[hour_local >= 6]),
+
+    nighttime_sd = sd(glucose[hour_local < 6]),
+
+
+    .groups="drop"
+
+  )
+
+participant_day_summary
+```
+
+This table is what will eventually be joined to sleep/activity data, day by day.
+
+------------------------------------------------------------------------
+
+# 7. Figures
+
+## Figure 1: Full CGM Trace
+
+One participant's entire glucose trace across their monitoring period. Participant selected: the first one with valid data (a simple, disclosed rule).
+
+```{r}
+example_participant <- unique(cgm_valid$person_id)[1]
+
+full_trace <- cgm_valid %>%
+  filter(person_id == example_participant)
+
+ggplot(
+  full_trace,
+  aes(x=time_local,y=glucose)
+) +
+  geom_line() +
+  labs(
+    title=paste(
+      "Full CGM Trace:",
+      example_participant
+    ),
+    x="Local Time",
+    y="Glucose (mg/dL)"
+  )
+```
+
+Shows glucose rising and falling over time, it doesn't explain why since meals, exercise, medication, and sleep aren't included.
+
+------------------------------------------------------------------------
+
+## Figure 2: Example Valid Local-Day Traces
+
+Two valid days overlaid on one chart to show day-to-day variability. `slice(1:2)` picks the first two valid days found (disclosed selection rule). `semi_join()` filters `cgm_valid` down to just those two days' readings, without attaching extra columns.
+
+```{r}
+example_days <- cgm_valid %>%
+  group_by(person_id,date_local) %>%
+  summarise(
+    readings=n(),
+    .groups="drop"
+  ) %>%
+  filter(readings>=202) %>%
+  slice(1:2)
+
+two_days <- cgm_valid %>%
+  semi_join(
+    example_days,
+    by=c("person_id","date_local")
+  )
+
+ggplot(
+  two_days,
+  aes(
+    x=time_local,
+    y=glucose,
+    color=factor(date_local)
+  )
+) +
+  geom_line() +
+  labs(
+    title="CGM Traces for Two Valid Participant-Days",
+    x="Local Time",
+    y="Glucose (mg/dL)"
+  )
+```
+
+`color=factor(date_local)` colors each day separately so the two traces are visually distinguishable. Shows that glucose patterns can differ day to day and doesn't explain why.
+
+------------------------------------------------------------------------
+
+## Figure 3: AGP-Style Plot
+
+AGP = Ambulatory Glucose Profile, a standard CGM visualization that overlays all valid days by time-of-day (not calendar date) to show a "typical day" pattern. `time_of_day` = minutes since midnight, letting readings from different days at the same clock time be grouped together. For each time-of-day, calculates the median glucose plus the 25th–75th percentile spread across days.
+
+```{r}
+agp_participant <- unique(cgm_valid$person_id)[1]
+
+agp <- cgm_valid %>%
+  filter(person_id == agp_participant) %>%
+  mutate(
+    time_of_day = hour_local*60 + minute(time_local)
+  ) %>%
+  group_by(time_of_day) %>%
+  summarise(
+
+    median_glucose = median(glucose),
+
+    lower = quantile(glucose,0.25),
+
+    upper = quantile(glucose,0.75),
+
+    .groups="drop"
+
+  )
+```
+
+Ribbon = day-to-day spread (25th–75th percentile); line = median daily pattern; horizontal lines at 70/180 mg/dL = target range boundaries.
+
+```{r}
+ggplot(
+  agp,
+  aes(x=time_of_day)
+) +
+
+  geom_ribbon(
+    aes(
+      ymin=lower,
+      ymax=upper
+    ),
+    alpha=0.3
+  ) +
+
+  geom_line(
+    aes(y=median_glucose)
+  ) +
+
+  geom_hline(
+    yintercept=70
+  ) +
+
+  geom_hline(
+    yintercept=180
+  ) +
+
+  labs(
+    title=paste(
+      "AGP-Style CGM Profile:",
+      agp_participant
+    ),
+    x="Minutes After Midnight",
+    y="Glucose (mg/dL)"
+  )
+```
+
+This is an educational AGP-style visualization, not a clinical AGP. Clinical AGP interpretation typically requires 14 days of ≥70%-complete data, and this dataset has up to \~10 days.
+
+------------------------------------------------------------------------
+
+# 8. Week 3 Preparation
+
+## Which participants have at least one valid local day?
+
+```{r}
+unique(cgm_valid$person_id)
+```
+
+All five participants had at least one valid local CGM day.
+
+------------------------------------------------------------------------
+
+## Which local dates are valid for each participant?
+
+```{r}
+valid_dates
+```
+
+Shows exactly which participant-date combinations passed the coverage threshold, and by omission, where the gaps are.
+
+------------------------------------------------------------------------
+
+## Which timestamp will be used to align CGM with sleep/activity intervals?
+
+`time_local` will be used, since sleep and activity data are also recorded in local time.
+
+------------------------------------------------------------------------
+
+## Does the participant-day table have exactly one row per person_id + date_local combination?
+
+```{r}
+participant_day_summary %>%
+  count(person_id,date_local) %>%
+  filter(n>1)
+```
+
+Empty result confirms no duplicate participant-day rows and the table is at the correct grain for merging with other data later.
+
+------------------------------------------------------------------------
+
+## Is the participant-day table ready to join with sleep/activity data?
+
+Yes—one row per participant-day, no duplicate keys, and glucose features already summarized. Future work will scale this pipeline to more participants and merge in wearable sleep/activity data.
+
+------------------------------------------------------------------------
+
+# Week 3 Presentation Summary
+
+For the Week 3 update:
+
+- CGM data were cleaned and checked for missing values, duplicate timestamps, incorrect units, and unusual glucose values.
+
+- CGM visualizations were created, including full traces and an AGP-style plot.
+
+- Participant-level and participant-day glucose features were calculated.
+
+- A challenge was processing Dexcom data stored as nested JSON files and converting timestamps correctly.
+
+- The next step is to study how sleep and activity patterns relate to individual glucose changes.
